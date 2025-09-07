@@ -1,0 +1,306 @@
+
+http://103.186.230.15:7400/api/Auth/Login
+
+{
+
+  "email": "9445146090@str.com",
+
+  "password": "6090"
+
+}
+
+{  "isSuccess": true,  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIwMTk4NjAxNi05ZTlhLTcyYTctOWE0ZS1lZmM5ZGY2MTg0MTkiLCJ1bmlxdWVfbmFtZSI6IlJhdmkiLCJlbWFpbCI6Ijk0NDUxNDYwOTBAc3RyLmNvbSIsIlVzZXJJZCI6IjAxOTg2MDE2LTllOWEtNzJhNy05YTRlLWVmYzlkZjYxODQxOSIsIlVzZXJOYW1lIjoiUmF2aSIsIlRlbmFudE5hbWUiOiJTVFIiLCJUZW5hbnRUeXBlIjoiQ29tcGFueSIsIlRlbmFudElkIjoiZmZkZmUwM2YtODI0My1iYjk2LTUyNWUtMGU4NjQyNTg2YzJkIiwibmJmIjoxNzU3MTcyNDU3LCJleHAiOjE3NTc2NzI0NTcsImlhdCI6MTc1NzE3MjQ1NywiaXNzIjoiYXBpV2l0aEF1dGhCYWNrZW5kIiwiYXVkIjoiYXBpV2l0aEF1dGhCYWNrZW5kIn0.xLV4NqzLRJFPVH9TXYiAT1rbwu5TQKnkwbCW-jkfL_k",  "userName": "Ravi",  "userImageUrl": null,  "errorMessage": null,  "tenentId": "ffdfe03f-8243-bb96-525e-0e8642586c2d",  "faceImageRequried": false}
+
+
+
+
+
+
+
+
+
+
+package com.xyz.strapp.presentation.strliveliness
+
+import android.annotation.SuppressLint
+import android.content.Context
+import android.graphics.*
+import android.util.Log
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageProxy
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.face.Face
+import com.google.mlkit.vision.face.FaceDetection
+import com.google.mlkit.vision.face.FaceDetector
+import com.google.mlkit.vision.face.FaceDetectorOptions
+import org.tensorflow.lite.Interpreter
+import org.tensorflow.lite.support.common.FileUtil
+import org.tensorflow.lite.support.common.ops.NormalizeOp
+import org.tensorflow.lite.support.image.ImageProcessor
+import org.tensorflow.lite.support.image.TensorImage
+import org.tensorflow.lite.support.image.ops.ResizeOp
+import java.io.ByteArrayOutputStream
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import androidx.core.graphics.get
+
+class FaceLivenessAnalyzer(
+    context: Context, // Needed for loading model from assets
+    private val onLivenessResults: (Map<Face, Boolean>) -> Unit, // Callback with Face and its liveness status
+    private val onError: (Exception) -> Unit
+) : ImageAnalysis.Analyzer {
+
+    private val faceDetector: FaceDetector
+    private val tfliteInterpreter: Interpreter
+
+    // --- START: TFLITE MODEL CONFIGURATION (USER MUST MODIFY THESE) ---
+    // fake
+    // Face (bbox: Rect(206, 443 - 226, 469)) RAW TFLite Output: 0.94510543, 0.0 | Parsed Live: true (Score for live index 0: 0.94510543)
+    // Real
+    // Face (bbox: Rect(105, 230 - 365, 547)) RAW TFLite Output: 0.99996084, 0.0 | Parsed Live: true (Score for live index 0: 0.99996084)
+    companion object {
+        private const val CROP_SIZE = 1000 // YOUR MODEL FILENAME
+        private const val MODEL_FILENAME = "liveness_model.tflite" // YOUR MODEL FILENAME
+        private const val INPUT_SIZE = 224 // YOUR MODEL INPUT WIDTH
+        private const val MODEL_INPUT_WIDTH = 224 // YOUR MODEL INPUT WIDTH
+        private const val MODEL_INPUT_HEIGHT = 224 // YOUR MODEL INPUT HEIGHT
+        // For normalization:
+        // If your model expects [0,1] float:
+        private const val NORMALIZE_MEAN = 0.0f
+        private const val NORMALIZE_STD = 255.0f // Divides by 255
+        // If your model expects [-1,1] float (e.g. MobileNet):
+        //private const val NORMALIZE_MEAN = 127.5f
+        //private const val NORMALIZE_STD = 127.5f
+
+        // Adjust based on your model's output. Assuming 2 classes (e.g., spoof, live)
+        private const val OUTPUT_CLASSES_COUNT = 2
+        //private const val LIVE_CLASS_INDEX = 1 // Assuming index 1 is 'live'
+        private const val LIVE_CLASS_INDEX = 0 // Assuming index 1 is 'live'
+        private const val LIVENESS_THRESHOLD = 0.999f // 0.7f Confidence threshold
+        private const val SPOOF_THRESHOLD = 0.8f // 0.7f Confidence threshold
+    }
+    // --- END: TFLITE MODEL CONFIGURATION ---
+
+    init {
+        val highAccuracyOpts = FaceDetectorOptions.Builder()
+            .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
+            .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
+            .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
+            .build()
+        faceDetector = FaceDetection.getClient(highAccuracyOpts)
+        Log.d("FaceLivenessAnalyzer", "FaceDetector initialized.")
+
+        try {
+            val modelBuffer = FileUtil.loadMappedFile(context, MODEL_FILENAME)
+            val tfliteOptions = Interpreter.Options()
+            // Consider adding delegates like GPU or NNAPI for performance
+            // tfliteOptions.addDelegate(NnApiDelegate())
+            // tfliteOptions.addDelegate(GpuDelegate())
+            tfliteInterpreter = Interpreter(modelBuffer, tfliteOptions)
+            Log.d("FaceLivenessAnalyzer", "TFLite Interpreter initialized with $MODEL_FILENAME")
+        } catch (e: Exception) {
+            Log.e("FaceLivenessAnalyzer", "Error initializing TFLite Interpreter", e)
+            onError(IllegalStateException("Failed to initialize TFLite model: ${e.message}", e))
+            // Re-throw to prevent further operation if interpreter fails
+            throw IllegalStateException("TFLite interpreter initialization failed", e)
+        }
+    }
+
+    @SuppressLint("UnsafeOptInUsageError", "RestrictedApi")
+    override fun analyze(imageProxy: ImageProxy) {
+        val mediaImage = imageProxy.image ?: run {
+            imageProxy.close()
+            return
+        }
+
+        // The rotationDegrees parameter is crucial for ML Kit to correctly process the image.
+        val imageRotationDegrees = imageProxy.imageInfo.rotationDegrees
+        val inputImage = InputImage.fromMediaImage(mediaImage, imageRotationDegrees)
+
+        faceDetector.process(inputImage)
+            .addOnSuccessListener { detectedFaces ->
+                if (detectedFaces.isNotEmpty()) {
+                    val livenessResults = mutableMapOf<Face, Boolean>()
+
+                    // Convert ImageProxy to Bitmap once for all faces in this frame
+                    val frameBitmap = imageProxyToBitmap(imageProxy)
+
+                    if (frameBitmap == null) {
+                        Log.e("FaceLivenessAnalyzer", "Could not convert ImageProxy to Bitmap.")
+                        onError(Exception("Bitmap conversion failed"))
+                        imageProxy.close() // Close proxy if bitmap conversion fails early
+                        return@addOnSuccessListener
+                    }
+
+                    /*for (face in detectedFaces) {
+                        val bounds: Rect = face.getBoundingBox()
+                        performFaceRecognition(face)
+                    }*/
+
+                    for (face in detectedFaces) {
+                        try {
+                            // Crop the original bitmap to the detected face
+                            // Ensure the bounding box is within the bitmap dimensions
+                            val faceBitmap = cropBitmapToFace(frameBitmap, face.boundingBox, imageRotationDegrees, frameBitmap.width, frameBitmap.height)
+
+                            // Preprocess the face bitmap for TFLite
+                            val inputBuffer = preprocessFaceBitmap(faceBitmap)
+
+                            // Prepare output buffer
+                            /*val outputBuffer = ByteBuffer.allocateDirect(OUTPUT_CLASSES_COUNT * 4) // 4 bytes per float
+                            outputBuffer.order(ByteOrder.nativeOrder())
+                            outputBuffer.rewind()
+
+                            // Run TFLite inference
+                            tfliteInterpreter.run(inputBuffer, outputBuffer)
+
+                            // Interpret the output
+                            outputBuffer.rewind() // Rewind before reading
+                            val outputArray = FloatArray(OUTPUT_CLASSES_COUNT)
+                            for (i in 0 until OUTPUT_CLASSES_COUNT) {
+                                outputArray[i] = outputBuffer.float
+                            }
+                            val isLive = interpretOutput(outputArray)*/
+                            val isLive = isLive(faceBitmap)
+                            livenessResults[face] = isLive
+
+                            //Log.d("FaceLivenessAnalyzer", "Face (bbox: ${face.boundingBox}) RAW TFLite Output: ${outputArray.joinToString()} | Parsed Live: $isLive (Score for live index $LIVE_CLASS_INDEX: ${outputArray.getOrNull(LIVE_CLASS_INDEX)})")
+                            //Log.d("FaceLivenessAnalyzer", "Face (bbox: ${face.boundingBox}), Liveness: $isLive, Output: ${outputArray.joinToString()}")
+
+                        } catch (e: Exception) {
+                            Log.e("FaceLivenessAnalyzer", "Error during TFLite inference for a face", e)
+                            // Decide if you want to call onError for individual face errors or collect them
+                        }
+                    }
+                    onLivenessResults(livenessResults)
+                } else {
+                    onLivenessResults(emptyMap()) // No faces detected
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.e("FaceLivenessAnalyzer", "ML Kit Face detection failed", e)
+                onError(e)
+            }
+            .addOnCompleteListener {
+                imageProxy.close() // Crucial: Close the ImageProxy
+            }
+    }
+
+    fun isLive(faceBitmap: Bitmap): Boolean {
+        //require(!(faceBitmap.width != INPUT_SIZE || faceBitmap.height != INPUT_SIZE)) { "Input bitmap must be 224x224" }
+
+        // Prepare input tensor
+        val input = Array<Array<Array<FloatArray?>?>?>(1) {
+            Array<Array<FloatArray?>?>(INPUT_SIZE) {
+                Array<FloatArray?>(INPUT_SIZE) { FloatArray(3) }
+            }
+        }
+
+        for (y in 0..< INPUT_SIZE) {
+            for (x in 0..< INPUT_SIZE) {
+                val pixel = faceBitmap[x, y]
+                // Extract RGB channels
+                val r = ((pixel shr 16) and 0xFF) / 255.0f
+                val g = ((pixel shr 8) and 0xFF) / 255.0f
+                val b = (pixel and 0xFF) / 255.0f
+                input[0]!![y]!![x]!![0] = r
+                input[0]!![y]!![x]!![1] = g
+                input[0]!![y]!![x]!![2] = b
+            }
+        }
+
+        // Prepare output tensor
+        val output = Array<FloatArray?>(1) { FloatArray(1) }
+        tfliteInterpreter.run(input, output)
+
+        val score = output[0]!![0]
+        println("Spoof score → $score")
+
+        return score < SPOOF_THRESHOLD
+    }
+
+    private fun imageProxyToBitmap(imageProxy: ImageProxy): Bitmap? {
+        // This is a common way to convert YUV_420_888 ImageProxy to Bitmap
+        // It might be slow. Consider alternative methods or libraries for performance if needed.
+        @SuppressLint("UnsafeOptInUsageError")
+        val image = imageProxy.image ?: return null
+        val yBuffer = image.planes[0].buffer // Y
+        val uBuffer = image.planes[1].buffer // U
+        val vBuffer = image.planes[2].buffer // V
+
+        val ySize = yBuffer.remaining()
+        val uSize = uBuffer.remaining()
+        val vSize = vBuffer.remaining()
+
+        val nv21 = ByteArray(ySize + uSize + vSize)
+
+        yBuffer.get(nv21, 0, ySize)
+        vBuffer.get(nv21, ySize, vSize) // Note: U and V order might be swapped (VU instead of UV)
+        uBuffer.get(nv21, ySize + vSize, uSize) // depending on the device/camera. Test this.
+
+        val yuvImage = YuvImage(nv21, ImageFormat.NV21, image.width, image.height, null)
+        val out = ByteArrayOutputStream()
+        yuvImage.compressToJpeg(Rect(0, 0, yuvImage.width, yuvImage.height), 100, out)
+        val imageBytes = out.toByteArray()
+        return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+    }
+
+
+    private fun cropBitmapToFace(originalBitmap: Bitmap, faceBoundingBox: Rect, rotationDegrees: Int, frameWidth: Int, frameHeight: Int): Bitmap {
+        // Adjust bounding box for rotation if necessary.
+        // ML Kit face coordinates are relative to the unrotated image.
+        // However, if the bitmap from imageProxyToBitmap is already upright, direct cropping might be fine.
+        // This example assumes the bitmap from imageProxyToBitmap is upright.
+
+        val left = Math.max(0, faceBoundingBox.left)
+        val top = Math.max(0, faceBoundingBox.top)
+        // Ensure width and height for cropping are positive and within bounds
+        val width = if (faceBoundingBox.right > originalBitmap.width) originalBitmap.width - left else faceBoundingBox.width()
+        val height = if (faceBoundingBox.bottom > originalBitmap.height) originalBitmap.height - top else faceBoundingBox.height()
+
+        if (width <= 0 || height <= 0 || left + width > originalBitmap.width || top + height > originalBitmap.height) {
+            Log.w("FaceLivenessAnalyzer", "Invalid crop dimensions, returning original bitmap or a scaled version.")
+            // Fallback: return a scaled version of the original, or the original itself.
+            // This prevents a crash but might not be ideal for the model.
+            return Bitmap.createScaledBitmap(originalBitmap, MODEL_INPUT_WIDTH, MODEL_INPUT_HEIGHT, true)
+        }
+
+        return Bitmap.createBitmap(originalBitmap, left, top, width, height)
+        //return Bitmap.createBitmap(originalBitmap, left, top, MODEL_INPUT_WIDTH, MODEL_INPUT_HEIGHT)
+    }
+
+
+    private fun preprocessFaceBitmap(bitmap: Bitmap): ByteBuffer {
+        // Resize, normalize, and convert to ByteBuffer
+        val tensorImage = TensorImage.fromBitmap(bitmap)
+
+        // Create an ImageProcessor
+        // The order of operations matters!
+        val imageProcessor = ImageProcessor.Builder()
+            .add(ResizeOp(MODEL_INPUT_HEIGHT, MODEL_INPUT_WIDTH, ResizeOp.ResizeMethod.BILINEAR))
+            // Add normalization based on your model's requirements
+            .add(NormalizeOp(NORMALIZE_MEAN, NORMALIZE_STD))
+            // .add(QuantizeOp(128.0f, 1/128.0f)) // If it's a quantized model
+            .build()
+
+        val processedImage = imageProcessor.process(tensorImage)
+        return processedImage.buffer
+    }
+
+    private fun interpretOutput(outputArray: FloatArray): Boolean {
+        // Example: Assume outputArray[LIVE_CLASS_INDEX] is the probability of being live.
+        // This logic heavily depends on your TFLite model's output.
+        if (outputArray.size < OUTPUT_CLASSES_COUNT) {
+            Log.e("FaceLivenessAnalyzer", "Output array size mismatch. Expected $OUTPUT_CLASSES_COUNT, got ${outputArray.size}")
+            return false // Or throw an error
+        }
+        val liveProbability = outputArray[LIVE_CLASS_INDEX]
+        return liveProbability > LIVENESS_THRESHOLD
+    }
+
+    fun stop() {
+        faceDetector.close()
+        tfliteInterpreter.close() // Close the interpreter
+        Log.d("FaceLivenessAnalyzer", "FaceDetector and TFLite Interpreter closed.")
+    }
+}

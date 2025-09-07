@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">103.186.230.15</domain>
+        <!-- You can add other domains or IP addresses here if needed -->
+        <!-- e.g., <domain includeSubdomains="true">your-api.com</domain> -->
+    </domain-config>
+    <!--
+    If you need to allow cleartext for all domains (less secure, use with caution,
+    and consider restricting this to debug builds if possible):
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    -->
+</network-security-config>
