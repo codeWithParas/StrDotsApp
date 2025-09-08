@@ -27,6 +27,4 @@ interface LoginDao {
     //delete all data
     @Query("DELETE FROM login_table")
     suspend fun deleteAll()
-
-
 }
