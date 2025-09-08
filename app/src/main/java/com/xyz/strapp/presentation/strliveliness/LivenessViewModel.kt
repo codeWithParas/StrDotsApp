@@ -1,6 +1,7 @@
 package com.xyz.strapp.presentation.strliveliness
 
 import android.app.Application
+import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
 import androidx.camera.core.CameraSelector
@@ -88,7 +89,7 @@ class LivenessViewModel @Inject constructor(
         Log.d(TAG, "Camera permission granted by user.")
     }
 
-    fun startCamera(lifecycleOwner: LifecycleOwner, surfaceProvider: Preview.SurfaceProvider) {
+    fun startCamera(context: Context,lifecycleOwner: LifecycleOwner, surfaceProvider: Preview.SurfaceProvider) {
         cameraProviderFuture = ProcessCameraProvider.getInstance(application)
         cameraExecutor = Executors.newSingleThreadExecutor()
 
@@ -120,7 +121,7 @@ class LivenessViewModel @Inject constructor(
                         lastTrackedFaceIdForCountdown = results.entries.first().key.trackingId
                         Log.d(TAG, "###@@@ LastTrackedFaceIdForCountdown -- $lastTrackedFaceIdForCountdown")
                         _livenessResults.value = results
-                        startCountdown()
+                        startCountdown(context)
                     }
                 }
             },
@@ -137,7 +138,7 @@ class LivenessViewModel @Inject constructor(
         }, ContextCompat.getMainExecutor(application))
     }
 
-    private fun startCountdown() {
+    private fun startCountdown(context: Context) {
         countdownJob?.cancel()
         countdownJob = viewModelScope.launch {
             _isTimerVisible.value = true
@@ -150,7 +151,7 @@ class LivenessViewModel @Inject constructor(
             _countdownValue.value = 0
             _isTimerVisible.value = false
             Log.d(TAG, "###@@@ Countdown finished.")
-            processImageCapture()
+            processImageCapture(context)
         }
     }
 
@@ -167,7 +168,7 @@ class LivenessViewModel @Inject constructor(
         Log.d(TAG, "###@@@ Countdown cancelled.")
     }
 
-    private fun processImageCapture() {
+    private fun processImageCapture(context: Context) {
         val bitmapToSave = capturedImageForProcessing
         if (bitmapToSave == null) {
             Log.e(TAG, "###@@@ Bitmap for processing is null after countdown.")
@@ -193,7 +194,7 @@ class LivenessViewModel @Inject constructor(
                     _uiState.value = LivenessScreenUiState.CaptureSuccess("Attendance Marked Successfully!")
                     Log.d(TAG, "###@@@ Image saved successfully with ID: $imageId. Start Enqueuing upload worker.")
                     //enqueueImageUploadWorker()
-                    faceLivenessRepository.startCheckIn(imageId.first, imageId.second)
+                    faceLivenessRepository.startCheckIn(context,imageId.first, imageId.second)
                 } else {
                     _uiState.value = LivenessScreenUiState.CaptureError("Failed to save image locally.")
                     Log.e(TAG, "###@@@ Failed to save image to repository (returned null ID).")

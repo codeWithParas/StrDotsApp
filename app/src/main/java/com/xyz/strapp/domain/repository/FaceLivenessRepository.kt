@@ -1,12 +1,17 @@
 package com.xyz.strapp.domain.repository
 
+import android.content.ContentValues
+import android.content.Context
 import android.graphics.Bitmap
+import android.net.Uri
+import android.provider.MediaStore
 import android.util.Log
 import com.xyz.strapp.data.dao.FaceImageDao
 import com.xyz.strapp.domain.model.CheckInRequest
 import com.xyz.strapp.domain.model.FaceImageEntity
 import com.xyz.strapp.domain.model.UploadImageRequest
 import com.xyz.strapp.endpoints.ApiService
+import com.xyz.strapp.utils.Constants
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -145,6 +150,9 @@ class FaceLivenessRepository @Inject constructor(
                     "image_${imageEntity.id}.jpg", // This is the filename sent to the server
                     imageRequestBody
                 )
+
+
+
                 // 3. Create RequestBody for other data (from CheckInRequest)
                 // You need to convert each field of your CheckInRequest to RequestBody
                 // Assuming CheckInRequest has latitude, longitude, dateTime
@@ -179,28 +187,63 @@ class FaceLivenessRepository @Inject constructor(
         )
     }
 
-    suspend fun startCheckIn(imageId: Long, imageByteArray: ByteArray) {
+    private fun saveImageToGallery(context: Context, imageData: ByteArray, fileName: String): Uri? {
+        return try {
+            val contentValues = ContentValues().apply {
+                put(MediaStore.Images.Media.DISPLAY_NAME, fileName)
+                put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+                put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/MyApp") // Folder name
+                put(MediaStore.Images.Media.IS_PENDING, 1)
+            }
 
+            val resolver = context.contentResolver
+            val collection = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+            val imageUri = resolver.insert(collection, contentValues)
+
+            imageUri?.let { uri ->
+                resolver.openOutputStream(uri)?.use { outputStream ->
+                    outputStream.write(imageData)
+                }
+
+                contentValues.clear()
+                contentValues.put(MediaStore.Images.Media.IS_PENDING, 0)
+                resolver.update(uri, contentValues, null, null)
+            }
+
+            Log.d("GallerySave", "Image saved to gallery: $imageUri")
+            imageUri
+        } catch (e: Exception) {
+            Log.e("GallerySave", "Failed to save image: ${e.message}", e)
+            null
+        }
+    }
+    suspend fun startCheckIn(context: Context,imageId: Long, imageByteArray: ByteArray) {
         try {
-
             if (imageByteArray.isEmpty()) {
                 Log.e("FaceLivenessRepository", "Image byte array is empty! Cannot proceed with CheckIn.")
                 // You should probably return or throw an error here instead of proceeding
                 return
             }
-            // 1. Create RequestBody from ByteArray for the image
+
             val imageRequestBody = imageByteArray.toRequestBody(
                 "image/jpeg".toMediaTypeOrNull(), // Or "image/png" depending on your image format
                 0, // offset
                 imageByteArray.size // size
             )
-            // 2. Create MultipartBody.Part from the RequestBody
+
             val imagePart = MultipartBody.Part.createFormData(
                 "Image", // Name "Image" to match curl command
                 "image_${imageId}.jpg", // This is the filename sent to the server
                 imageRequestBody
             )
-
+            if(Constants.savePhotoToGallery){
+                //save this image to gallery
+                saveImageToGallery(
+                    context,
+                    imageByteArray,
+                    "checkIn_image_${imageId}.jpg"
+                )
+            }
             val authToken = token ?: ""
             Log.d("FaceLivenessRepository", "###@@@ Auth Token for CheckIn: ${authToken}")
 
@@ -219,17 +262,12 @@ class FaceLivenessRepository @Inject constructor(
             partMap["Longitude"] = longitudeRequestBody
             partMap["dateTime"] = dateTimeRequestBody
 
-            // 4. Make the API call
-            // If your interceptor handles the token, you might just call:
-            // val response = apiService.startCheckIn(imagePart = imagePart)
-
-            //val response = apiService.startCheckIn(authToken = authToken, imagePart = imagePart, partMap)
             val response = apiService.startCheckIn(
                 authToken = authToken,
                 imagePart = imagePart,
                 latitude = 28.575447f,
                 longitude = 77.44539f,
-                dateTime = "Mon 8 Sep 2025 1:20 PM"
+                dateTime = "2025-09-08T16:10:00Z"
             )
 
             delay(2000) // Consider removing for production

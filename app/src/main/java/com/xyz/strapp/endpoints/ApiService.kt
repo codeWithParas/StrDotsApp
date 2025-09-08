@@ -51,19 +51,13 @@ interface ApiService {
      * @return A Retrofit Response wrapping a ServerResponse data class.
      */
     @Multipart
-    @Headers("Content-Type: multipart/form-data; boundary=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
     @POST("api/AttendanceRegister/CheckIn")
     suspend fun startCheckIn(
         @Header("Authorization") authToken: String,
         @Part imagePart: MultipartBody.Part,
         @Query("Latitude") latitude: Float,
         @Query("Longitude") longitude: Float,
-        @Query("dateTime") dateTime: String,
-        //@PartMap params: Map<String, @JvmSuppressWildcards RequestBody>,
-        //@Part("Latitude") latitude: RequestBody,
-        //@Part("Longitude") longitude: RequestBody,
-        //@Part("dateTime") dateTime: RequestBody,
-        //@Part checkInRequest: CheckInRequest
+        @Query("dateTime") dateTime: String
     ): Response<UploadResponse>
 
 

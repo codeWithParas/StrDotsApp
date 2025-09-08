@@ -88,6 +88,7 @@ fun LivelinessScreen(viewModel: LivenessViewModel = hiltViewModel(), onNavigateB
                 modifier = Modifier.fillMaxSize(),
                 update = {
                     viewModel.startCamera(
+                        context = context,
                         lifecycleOwner = lifecycleOwner,
                         surfaceProvider = previewView.surfaceProvider
                     )
@@ -149,7 +150,7 @@ fun LivelinessScreen(viewModel: LivenessViewModel = hiltViewModel(), onNavigateB
             }
             is LivenessScreenUiState.CaptureSuccess -> {
                 SuccessErrorOverlay(message = state.message, isError = false)
-                Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
+                //Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
                 onNavigateBack()
             }
             is LivenessScreenUiState.CaptureError -> {
