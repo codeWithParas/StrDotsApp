@@ -99,7 +99,10 @@ class LivenessViewModel @Inject constructor(
                     val trackedFaceResult = results.entries.find { it.key.trackingId == lastTrackedFaceIdForCountdown }
                     if (trackedFaceResult == null || !trackedFaceResult.value.isLive) {
                         Log.d(TAG, "###@@@ Face for countdown lost or became spoof. Cancelling timer.")
-                        cancelCountdown()
+                        viewModelScope.launch {
+                            delay(3000)
+                            cancelCountdown()
+                        }
                     }
                 }
             },

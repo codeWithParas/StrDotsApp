@@ -68,8 +68,8 @@ class FaceLivenessAnalyzer(
     private val CROP_SIZE: Int = 1000
     private val TF_OD_API_INPUT_SIZE2: Int = 160
 
-    private val MAX_HISTORY_SIZE: Int = 15
-    private val MIN_FRAMES_FOR_DYNAMIC_CHECK: Int = 14
+    private val MAX_HISTORY_SIZE: Int = 12
+    private val MIN_FRAMES_FOR_DYNAMIC_CHECK: Int = 10
     private val STILLNESS_THRESHOLD_POSITION = 5 // Max allowed pixels change for X or Y
     // Min probability for an eye to be considered closed (i.e. if < threshold, then closed)
     private val BLINK_EYE_CLOSED_PROB_THRESHOLD = 0.5f
@@ -182,29 +182,28 @@ class FaceLivenessAnalyzer(
                                     // Note : Face Tracking Id will remain same if face remains in frame.
 
                                     if (faceSnapshotHistory.size >= MIN_FRAMES_FOR_DYNAMIC_CHECK) {
-                                        // Integration point: Calling isFaceTooStill
+
                                         val isTooStill = isFaceTooStill(faceSnapshotHistory.toList())
-                                        // Integration point: Calling hasBlinkedRecently
                                         val hasBlinked = hasBlinkedRecently(faceSnapshotHistory.toList())
 
                                         Log.d(TAG, "###@@@ TooStill: $isTooStill, HasBlinked: $hasBlinked")
 
-                                        if (isTooStill && !hasBlinked) {
-                                            Log.w(TAG, "###@@@ SPOOF DETECTED (OVERRIDE): Face ID ${largestFace.trackingId} was TFLite-live but failed dynamic checks (Too Still AND No Blink).")
-                                            finalIsLive = false // Override TFLite's result
-                                        } else if (/*isTooStill &&*/ hasBlinked) {
+                                        if (hasBlinked) {
                                             Log.d(TAG, "###@@@ Dynamic Checks: Face ID ${largestFace.trackingId} is still but blinked. Considered LIVE.")
                                             onFaceDetectedForCountdown(largestFace, faceBitmap, resultsMap)
-                                        } else if (!isTooStill) {
-                                            Log.d(TAG, "###@@@ Dynamic Checks: Face ID ${largestFace.trackingId} is NOT too still. Considered LIVE.")
-                                            //onFaceDetectedForCountdown(largestFace, faceBitmap, resultsMap)
+                                        } else {
+                                            Log.w(TAG, "###@@@ SPOOF DETECTED (OVERRIDE): Face ID ${largestFace.trackingId} was TFLite-live but failed dynamic checks (Too Still AND No Blink).")
+                                            finalIsLive = false // Override TFLite's result
+                                            onLivenessResults(resultsMap)
                                         }
                                     } else {
                                         Log.d(TAG, "###@@@ Face ID ${largestFace.trackingId}: Not enough history for dynamic checks (${faceSnapshotHistory.size}/$MIN_FRAMES_FOR_DYNAMIC_CHECK). Relying on TFLite result for now.")
                                     }
+                                } else {
+                                    //onLivenessResults(resultsMap)
                                 }
                             }
-                            onLivenessResults(resultsMap)
+                            //onLivenessResults(resultsMap)
                         }
                         // If the previously tracked live face is no longer live or no longer detected, reset.
                         if (liveFaceCandidateReported && lastTrackedLiveFaceId != null &&

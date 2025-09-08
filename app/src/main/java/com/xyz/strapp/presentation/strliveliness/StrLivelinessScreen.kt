@@ -42,6 +42,8 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathOperation
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -131,6 +133,14 @@ fun LivelinessScreen(viewModel: LivenessViewModel = hiltViewModel(), onNavigateB
             }
             is LivenessScreenUiState.CountdownRunning -> {
                 if (isTimerVisible && countdownValue > 0) {
+                    val countMsg = when(countdownValue){
+                        5, 4 -> "Position your face in the guided frame."
+                        else -> "Please remain still and normal."
+                    }
+                    CountdownOverlayTopMsg(
+                        modifier = Modifier.align(Alignment.TopCenter).padding(top = 80.dp),
+                        /*if(statusText.contains("Spoof")) statusText else*/ countMsg
+                    )
                     CountdownOverlay(countdownValue = countdownValue, statusText = statusText)
                 }
             }
@@ -167,6 +177,27 @@ fun LivenessStatusMessageOverlay(message: String, modifier: Modifier = Modifier)
             color = Color.White,
             textAlign = TextAlign.Center
         )
+    }
+}
+
+@Composable
+fun CountdownOverlayTopMsg(modifier: Modifier = Modifier, statusText: String) {
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        Spacer(modifier = Modifier.height(70.dp))
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = statusText,
+                fontSize = 25.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White.copy(alpha = 0.8f),
+                modifier = Modifier
+                    .background(Color.Black.copy(alpha = 0.3f), shape = CircleShape)
+                    .padding(horizontal = 20.dp, vertical = 10.dp)
+            )
+        }
     }
 }
 
@@ -260,8 +291,8 @@ fun AnimatedFaceGuideOverlay(modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
         val canvasWidth = size.width
         val canvasHeight = size.height
-        val ovalWidth = canvasWidth * 0.75f
-        val ovalHeight = ovalWidth * 1.3f
+        val ovalWidth = canvasWidth * 0.90f //0.75f
+        val ovalHeight = ovalWidth * 1.3f //1.3f
         val ovalLeft = (canvasWidth - ovalWidth) / 2
         val ovalTop = (canvasHeight - ovalHeight) * 0.4f // Position slightly higher than true center
 
@@ -270,12 +301,12 @@ fun AnimatedFaceGuideOverlay(modifier: Modifier = Modifier) {
 
         val overlayColor = Color.Black.copy(alpha = 0.5f)
         val fullCanvasRectPath = Path().apply { addRect(Rect(0f, 0f, canvasWidth, canvasHeight)) }
-        /*val cutoutPath = Path.combine(
-            operation = Path.Op.Difference,
+        val cutoutPath = Path.combine(
+            operation = PathOperation.Difference,
             path1 = fullCanvasRectPath,
             path2 = ovalPath
         )
-        drawPath(cutoutPath, color = overlayColor)*/
+        drawPath(cutoutPath, color = overlayColor)
 
         drawOval(
             color = Color.White.copy(alpha = 0.7f),
