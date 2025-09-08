@@ -2,13 +2,18 @@ package com.xyz.strapp.endpoints
 
 import com.xyz.strapp.domain.model.LoginRequest
 import com.xyz.strapp.domain.model.LoginResponse
+import com.xyz.strapp.domain.model.UploadImageRequest
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.Header
+import retrofit2.http.Headers
 import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
+import retrofit2.http.Query
+import retrofit2.http.PartMap
 
 interface ApiService {
 
@@ -40,14 +45,27 @@ interface ApiService {
      * @param timestamp A RequestBody part for the capture timestamp. (Example)
      * @return A Retrofit Response wrapping a ServerResponse data class.
      */
-    // suspend fun uploadImage(imageData: ByteArray, fileName: String): Boolean
     @Multipart
-    @POST("api/v1/upload_face_image") // Replace with your actual endpoint
-    suspend fun uploadFaceImage(
+    @Headers("Content-Type: multipart/form-data; boundary=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
+    @POST("api/AttendanceRegister/CheckIn")
+    suspend fun startCheckIn(
+        @Header("Authorization") authToken: String,
         @Part imagePart: MultipartBody.Part,
-        @Part("user_id") userId: RequestBody, // Example: "user_id" is the name of the part in the multipart request
-        @Part("timestamp") timestamp: RequestBody // Example: "timestamp"
-    ): Response<UploadResponse> // Replace UploadResponse with your actual server response model
+        @Query("Latitude") latitude: Float,
+        @Query("Longitude") longitude: Float,
+        @Query("dateTime") dateTime: String,
+        //@PartMap params: Map<String, @JvmSuppressWildcards RequestBody>,
+        //@Part("Latitude") latitude: RequestBody,
+        //@Part("Longitude") longitude: RequestBody,
+        //@Part("dateTime") dateTime: RequestBody,
+        //@Part checkInRequest: CheckInRequest
+    ): Response<UploadResponse>
+
+
+    @POST("api/AttendanceRegister/UploadImage")
+    suspend fun uploadImage(
+        @Body uploadData: UploadImageRequest
+    ): Response<UploadResponse>
 
     // You can add other API calls here, for example:
     // @GET("api/v1/user_status/{userId}")

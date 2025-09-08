@@ -9,6 +9,16 @@ http://103.186.230.15:7400/api/Auth/Login
 
 }
 
+{
+  "isSuccess": true,
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIwMTk4NjAxNi05ZTlhLTcyYTctOWE0ZS1lZmM5ZGY2MTg0MTkiLCJ1bmlxdWVfbmFtZSI6IlJhdmkiLCJlbWFpbCI6Ijk0NDUxNDYwOTBAc3RyLmNvbSIsIlVzZXJJZCI6IjAxOTg2MDE2LTllOWEtNzJhNy05YTRlLWVmYzlkZjYxODQxOSIsIlVzZXJOYW1lIjoiUmF2aSIsIlRlbmFudE5hbWUiOiJTVFIiLCJUZW5hbnRUeXBlIjoiQ29tcGFueSIsIlRlbmFudElkIjoiZmZkZmUwM2YtODI0My1iYjk2LTUyNWUtMGU4NjQyNTg2YzJkIiwibmJmIjoxNzU3MzE4MjAyLCJleHAiOjE3NTc4MTgyMDIsImlhdCI6MTc1NzMxODIwMiwiaXNzIjoiYXBpV2l0aEF1dGhCYWNrZW5kIiwiYXVkIjoiYXBpV2l0aEF1dGhCYWNrZW5kIn0.44O69pxg5_NcfTuZlUBQERfYM_Xnf8ehVODFCtb8SpY",
+  "userName": "Ravi",
+  "userImageUrl": null,
+  "errorMessage": null,
+  "tenentId": "ffdfe03f-8243-bb96-525e-0e8642586c2d",
+  "faceImageRequried": false
+}
+
 {  "isSuccess": true,  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIwMTk4NjAxNi05ZTlhLTcyYTctOWE0ZS1lZmM5ZGY2MTg0MTkiLCJ1bmlxdWVfbmFtZSI6IlJhdmkiLCJlbWFpbCI6Ijk0NDUxNDYwOTBAc3RyLmNvbSIsIlVzZXJJZCI6IjAxOTg2MDE2LTllOWEtNzJhNy05YTRlLWVmYzlkZjYxODQxOSIsIlVzZXJOYW1lIjoiUmF2aSIsIlRlbmFudE5hbWUiOiJTVFIiLCJUZW5hbnRUeXBlIjoiQ29tcGFueSIsIlRlbmFudElkIjoiZmZkZmUwM2YtODI0My1iYjk2LTUyNWUtMGU4NjQyNTg2YzJkIiwibmJmIjoxNzU3MTcyNDU3LCJleHAiOjE3NTc2NzI0NTcsImlhdCI6MTc1NzE3MjQ1NywiaXNzIjoiYXBpV2l0aEF1dGhCYWNrZW5kIiwiYXVkIjoiYXBpV2l0aEF1dGhCYWNrZW5kIn0.xLV4NqzLRJFPVH9TXYiAT1rbwu5TQKnkwbCW-jkfL_k",  "userName": "Ravi",  "userImageUrl": null,  "errorMessage": null,  "tenentId": "ffdfe03f-8243-bb96-525e-0e8642586c2d",  "faceImageRequried": false}
 
 

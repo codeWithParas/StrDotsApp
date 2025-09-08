@@ -2,16 +2,15 @@ package com.xyz.strapp.di
 
 import android.content.Context
 import androidx.datastore.core.DataStore
-import androidx.datastore.dataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
-import androidx.work.WorkManager
 import com.xyz.strapp.data.dao.FaceImageDao
 import com.xyz.strapp.data.dao.LoginDao
 import com.xyz.strapp.data.database.AppDatabase
+import com.xyz.strapp.domain.model.auth.AuthInterceptor
+import com.xyz.strapp.domain.model.auth.MyTokenProvider
 import com.xyz.strapp.domain.repository.FaceLivenessRepository
-import com.xyz.strapp.domain.repository.LoginRepository
 import com.xyz.strapp.endpoints.ApiService
 import com.xyz.strapp.utils.Utils.DATABASE_NAME
 import dagger.Module
@@ -23,12 +22,22 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.net.CookieStore
+import java.net.Proxy
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
 // Define the DataStore name at a top-level or in a companion object for global access
 private const val USER_PREFERENCES_NAME = "strapp_user_prefs"
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = USER_PREFERENCES_NAME)
+
+val loggingInterceptor = HttpLoggingInterceptor().apply {
+    level = HttpLoggingInterceptor.Level.BODY
+}
+
+private const val TIMEOUT_CONNECTION: Long = 60
+private const val TIMEOUT_READ: Long = 60
+private const val TIMEOUT_WRITE: Long = 60
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -42,15 +51,34 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(): OkHttpClient {
+    fun provideTokenProvider(
+        dataStore: DataStore<Preferences>
+    ): MyTokenProvider {
+        return MyTokenProvider(dataStore)
+    }
+
+    @Provides
+    @Singleton
+    fun provideAuthInterceptor(
+        tokenProvider: MyTokenProvider
+    ): AuthInterceptor {
+        return AuthInterceptor(tokenProvider)
+    }
+
+    @Provides
+    @Singleton
+    fun provideOkHttpClient(
+        authInterceptor: AuthInterceptor
+    ): OkHttpClient {
         return OkHttpClient.Builder()
-            .addInterceptor(HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.BODY // Log request and response bodies
-            })
-            // Add other interceptors like for Auth tokens here
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(30, TimeUnit.SECONDS)
+            .connectTimeout(TIMEOUT_CONNECTION, TimeUnit.SECONDS)
+            .readTimeout(TIMEOUT_READ, TimeUnit.SECONDS)
+            .writeTimeout(TIMEOUT_WRITE, TimeUnit.SECONDS)
+            .proxy(Proxy.NO_PROXY)
+            .addInterceptor(authInterceptor)
+            .addInterceptor(loggingInterceptor)
+            .followRedirects(false)
+            //.cookieJar(CookieStore.get(context))
             .build()
     }
 
@@ -67,11 +95,9 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideAuthApiService(retrofit: Retrofit): ApiService {
+    fun provideApiService(retrofit: Retrofit): ApiService {
         return retrofit.create(ApiService::class.java)
     }
-
-
 
     @Singleton
     @Provides
@@ -122,17 +148,25 @@ object AppModule {
     @Singleton // Repositories are often singletons
     @Provides
     fun provideFaceLivenessRepository(
-        faceImageDao: FaceImageDao // Use the fully qualified name or import
+        faceImageDao: FaceImageDao, // Use the fully qualified name or import
         // Add other dependencies if needed, e.g., a Retrofit API service for uploads
-        // , faceApiService: FaceApiService
+        apiService: ApiService,
+        tokenProvider: MyTokenProvider
     ): FaceLivenessRepository { // Use the fully qualified name or import
-        return FaceLivenessRepository(faceImageDao)// , faceApiService )
+        return FaceLivenessRepository(faceImageDao, apiService, tokenProvider.getToken())// , faceApiService )
     }
 
-    @Provides
+    /*@Provides
     @Singleton // Or appropriate scope
-    fun provideWorkManager(@ApplicationContext context: Context): WorkManager {
-        return WorkManager.getInstance(context)
-    }
+    fun provideCheckInWorkManager(
+        @ApplicationContext context: Context,
+        workerParameters: WorkerParameters,
+        faceLivenessRepository: FaceLivenessRepository,
+        apiService: ApiService
+    ): ImageUploadWorker {
+        return ImageUploadWorker(context,
+            workerParameters, faceLivenessRepository, apiService
+        )
+    }*/
 
 }

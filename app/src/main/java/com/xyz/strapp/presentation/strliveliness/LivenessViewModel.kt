@@ -12,6 +12,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.Constraints
+import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
@@ -44,7 +45,7 @@ sealed interface LivenessScreenUiState {
 class LivenessViewModel @Inject constructor(
     private val application: Application, // Application context
     private val faceLivenessRepository: FaceLivenessRepository,
-    private val workManager: WorkManager // Inject WorkManager
+    //private val workManager: CheckInWorkManager
 ) : ViewModel() {
 
     private lateinit var cameraProviderFuture: ListenableFuture<ProcessCameraProvider>
@@ -187,11 +188,12 @@ class LivenessViewModel @Inject constructor(
             try {
                 Log.d(TAG, "###@@@ Attempting to save image to repository.")
                 // Changed to use the correct repository method name
-                val imageId = faceLivenessRepository.saveFaceImage(bitmapToSave) 
-                if (imageId != null) {
+                val imageId = faceLivenessRepository.saveFaceImage(bitmapToSave)
+                if (imageId?.first != null) {
                     _uiState.value = LivenessScreenUiState.CaptureSuccess("Attendance Marked Successfully!")
                     Log.d(TAG, "###@@@ Image saved successfully with ID: $imageId. Start Enqueuing upload worker.")
-                    enqueueImageUploadWorker()
+                    //enqueueImageUploadWorker()
+                    faceLivenessRepository.startCheckIn(imageId.first, imageId.second)
                 } else {
                     _uiState.value = LivenessScreenUiState.CaptureError("Failed to save image locally.")
                     Log.e(TAG, "###@@@ Failed to save image to repository (returned null ID).")
@@ -205,6 +207,9 @@ class LivenessViewModel @Inject constructor(
     }
 
     private fun enqueueImageUploadWorker() {
+        // Initialize WorkManager
+        val workManager = WorkManager.getInstance(application)
+
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
@@ -212,16 +217,16 @@ class LivenessViewModel @Inject constructor(
         val uploadWorkRequest = OneTimeWorkRequestBuilder<ImageUploadWorker>()
             .setConstraints(constraints)
             // You can add a tag to observe or cancel the work by this tag if needed
-            // .addTag(UPLOAD_WORK_TAG) 
+            .addTag(UPLOAD_WORK_TAG)
             .build()
 
-        workManager.enqueue(uploadWorkRequest)
+        //workManager.enqueue(uploadWorkRequest)
         // For unique work, if you only want one instance of this worker running:
-        // workManager.enqueueUniqueWork(
-        //    UPLOAD_WORK_TAG, 
-        //    ExistingWorkPolicy.REPLACE, // or KEEP, or APPEND
-        //    uploadWorkRequest
-        // )
+        workManager.enqueueUniqueWork(
+            UPLOAD_WORK_TAG,
+            ExistingWorkPolicy.REPLACE, // or KEEP, or APPEND
+            uploadWorkRequest
+        )
         Log.d(TAG, "###@@@ ImageUploadWorker enqueued.")
     }
 
