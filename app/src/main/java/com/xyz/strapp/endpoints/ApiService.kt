@@ -31,8 +31,6 @@ interface ApiService {
     // suspend fun logout(): Response<Unit> // Or whatever your logout API returns
 
 
-
-
     /**
      * Uploads a face image to the server.
      * This example uses a multipart request, which is common for file uploads.
@@ -42,6 +40,7 @@ interface ApiService {
      * @param timestamp A RequestBody part for the capture timestamp. (Example)
      * @return A Retrofit Response wrapping a ServerResponse data class.
      */
+    // suspend fun uploadImage(imageData: ByteArray, fileName: String): Boolean
     @Multipart
     @POST("api/v1/upload_face_image") // Replace with your actual endpoint
     suspend fun uploadFaceImage(

@@ -52,11 +52,11 @@ class FaceLivenessRepository @Inject constructor(
                 val insertedId = faceImageDao.insertFaceImage(faceImageEntity)
                 Log.d(
                     "FaceLivenessRepository",
-                    "Face image saved with ID: $insertedId, Size: ${imageByteArray.size} bytes"
+                    "###@@@ Face image saved with ID: $insertedId, Size: ${imageByteArray.size} bytes"
                 )
                 insertedId
             } catch (e: Exception) {
-                Log.e("FaceLivenessRepository", "Error saving face image", e)
+                Log.e("FaceLivenessRepository", "###@@@ Error saving face image", e)
                 null // Return null or throw a custom domain exception
             }
         }
@@ -71,7 +71,7 @@ class FaceLivenessRepository @Inject constructor(
             try {
                 faceImageDao.getPendingUploads() // Assuming FaceImageDao has this method
             } catch (e: Exception) {
-                Log.e("FaceLivenessRepository", "Error fetching pending uploads", e)
+                Log.e("FaceLivenessRepository", "###@@@ Error fetching pending uploads", e)
                 emptyList()
             }
         }

@@ -1,7 +1,9 @@
+
 package com.xyz.strapp.presentation.strliveliness
 
 import android.Manifest
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.view.PreviewView
@@ -11,9 +13,21 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column // Added for centering messages
+import androidx.compose.foundation.layout.Spacer // Added
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height // Added
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size // Added for icons
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons // Added
+import androidx.compose.material.icons.filled.CheckCircle // Added
+import androidx.compose.material.icons.filled.Error // Added
+import androidx.compose.material3.CircularProgressIndicator // Added
+import androidx.compose.material3.Icon // Added
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,22 +40,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.google.mlkit.vision.face.Face
 
-// Removed: import androidx.activity.result.launch // Not directly used in this snippet anymore
 @Composable
-fun LivelinessScreen(viewModel: LivenessViewModel = hiltViewModel()) { // Renamed for clarity
+fun LivelinessScreen(viewModel: LivenessViewModel = hiltViewModel(), onNavigateBack: () -> Unit) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val permissionState = rememberLauncherForActivityResult(
@@ -50,9 +62,8 @@ fun LivelinessScreen(viewModel: LivenessViewModel = hiltViewModel()) { // Rename
         if (isGranted) {
             viewModel.onPermissionGranted()
         } else {
-            // Handle permission denial: show a message, etc.
             Log.d("StrLivelinessScreen", "Camera permission denied")
-            // You might want to show a persistent message on screen here
+            // Consider updating UI state here via ViewModel to show a persistent message
         }
     }
 
@@ -63,7 +74,10 @@ fun LivelinessScreen(viewModel: LivenessViewModel = hiltViewModel()) { // Rename
     }
 
     val isCameraReady by viewModel.isCameraReady.collectAsState()
-    val livenessResults by viewModel.livenessResults.collectAsState()
+    val livenessResults by viewModel.livenessResults.collectAsState() // For general face info
+    val uiState by viewModel.uiState.collectAsState()
+    val countdownValue by viewModel.countdownValue.collectAsState()
+    val isTimerVisible by viewModel.isTimerVisible.collectAsState()
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (isCameraReady) {
@@ -77,203 +91,207 @@ fun LivelinessScreen(viewModel: LivenessViewModel = hiltViewModel()) { // Rename
                     )
                 }
             )
-            // This is the animated placeholder overlay
-            AnimatedFaceGuideOverlay(modifier = Modifier.fillMaxSize())
+            if (uiState is LivenessScreenUiState.Detecting || uiState is LivenessScreenUiState.CountdownRunning) {
+                 AnimatedFaceGuideOverlay(modifier = Modifier.fillMaxSize())
+            }
+
         } else {
-            Text(
-                text = "Requesting camera permission or initializing camera...",
-                modifier = Modifier.align(Alignment.Center)
-            )
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
+            ) {
+                Text(
+                    text = "Requesting camera permission or initializing camera...",
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+        }
+        val statusText = if (livenessResults.isEmpty()) {
+            "No face detected. Please position your face in the camera."
+        } else {
+            val liveFaces = livenessResults.count { it.value.isLive }
+            val spoofFaces = livenessResults.count { !it.value.isLive }
+            when {
+                //liveFaces == 0 -> "Live face(s) detected: $liveFaces"
+                liveFaces > 0 -> "Live face(s) detected: $liveFaces"
+                spoofFaces > 0 -> "Spoof attempt detected. Please ensure it's a real person."
+                else -> "Processing..." // Should not happen if livenessResults is not empty and all are processed
+            }
         }
 
-        // Display Liveness Status
-        LivenessStatusOverlay(
-            livenessResults = livenessResults,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(16.dp)
+        // Display UI based on LivenessScreenUiState
+        when (val state = uiState) {
+            is LivenessScreenUiState.Detecting -> {
+                LivenessStatusMessageOverlay(
+                    message = "Position your face in the guide --> \n $statusText",
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                )
+            }
+            is LivenessScreenUiState.CountdownRunning -> {
+                if (isTimerVisible && countdownValue > 0) {
+                    CountdownOverlay(countdownValue = countdownValue, statusText = statusText)
+                }
+            }
+            is LivenessScreenUiState.ProcessingCapture -> {
+                ProcessingOverlay(message = "Processing capture...")
+            }
+            is LivenessScreenUiState.CaptureSuccess -> {
+                SuccessErrorOverlay(message = state.message, isError = false)
+                Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
+                onNavigateBack()
+            }
+            is LivenessScreenUiState.CaptureError -> {
+                SuccessErrorOverlay(message = state.message, isError = true)
+            }
+            LivenessScreenUiState.Idle -> {
+                // Nothing specific for idle, or could be initial instructions
+            }
+        }
+    }
+}
+
+@Composable
+fun LivenessStatusMessageOverlay(message: String, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(Color.Black.copy(alpha = 0.5f))
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.titleMedium,
+            color = Color.White,
+            textAlign = TextAlign.Center
         )
     }
 }
 
 @Composable
-fun LivenessStatusOverlay(
-    livenessResults: Map<Face, Boolean>,
-    modifier: Modifier = Modifier
-) {
-    val statusText = if (livenessResults.isEmpty()) {
-        "No face detected. Please position your face in the camera."
-    } else {
-        // For simplicity, checking if any face is live.
-        // You could iterate and display info for multiple faces if needed.
-        val liveFaces = livenessResults.count { it.value }
-        val spoofFaces = livenessResults.count { !it.value }
-
-        when {
-            //liveFaces == 0 -> "Live face(s) detected: $liveFaces"
-            liveFaces > 0 -> "Live face(s) detected: $liveFaces"
-            spoofFaces > 0 -> "Spoof attempt detected. Please ensure it's a real person."
-            else -> "Processing..." // Should not happen if livenessResults is not empty and all are processed
+fun CountdownOverlay(countdownValue: Int, modifier: Modifier = Modifier, statusText: String) {
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = countdownValue.toString(),
+                fontSize = 120.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White.copy(alpha = 0.8f),
+                modifier = Modifier
+                    .background(Color.Black.copy(alpha = 0.3f), shape = CircleShape)
+                    .padding(horizontal = 30.dp, vertical = 10.dp)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(text = statusText, color = Color.White, style = MaterialTheme.typography.bodySmall)
         }
-    }
 
-    Text(
-        text = statusText,
-        style = MaterialTheme.typography.titleMedium,
-        color = Color.White,
-        textAlign = TextAlign.Center,
-        modifier = modifier
-            .padding(8.dp)
-// Add a background to make text more readable, e.g.
-// .background(Color.Black.copy(alpha = 0.5f))
-// .padding(8.dp)
-    )
+    }
 }
 
 @Composable
+fun ProcessingOverlay(message: String, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.7f)),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            CircularProgressIndicator(color = Color.White)
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(text = message, color = Color.White, style = MaterialTheme.typography.titleMedium)
+        }
+    }
+}
+
+@Composable
+fun SuccessErrorOverlay(message: String, isError: Boolean, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.8f)),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(
+                imageVector = if (isError) Icons.Filled.Error else Icons.Filled.CheckCircle,
+                contentDescription = if (isError) "Error" else "Success",
+                tint = if (isError) Color.Red else Color.Green,
+                modifier = Modifier.size(80.dp)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = message,
+                color = Color.White,
+                style = MaterialTheme.typography.headlineSmall,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+        }
+    }
+}
+
+
+@Composable
 fun AnimatedFaceGuideOverlay(modifier: Modifier = Modifier) {
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse_overlay")
     val pulseStrength by infiniteTransition.animateFloat(
-        initialValue = 0.9f, // Start slightly scaled down or less opaque
-        targetValue = 1.1f, // Scale up or more opaque
+        initialValue = 0.95f,
+        targetValue = 1.05f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1000, easing = androidx.compose.animation.core.LinearEasing),
+            animation = tween(durationMillis = 1000),
             repeatMode = RepeatMode.Reverse
-        ), label = "pulseStrength"
+        ), label = "pulse_strength_overlay"
     )
     val animatedAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.5f,
+        initialValue = 0.6f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 700, delayMillis = 100),
             repeatMode = RepeatMode.Reverse
-        ), label = "animatedAlpha"
+        ), label = "alpha_overlay"
     )
-
 
     Canvas(modifier = modifier) {
         val canvasWidth = size.width
         val canvasHeight = size.height
-
-        // Define the oval size and position (centered)
-        // Make it slightly smaller than full width, and portrait-oriented
-        val ovalWidth = canvasWidth * 0.90f  // 0.75f
-        val ovalHeight = ovalWidth * 1.3f // Adjust aspect ratio as needed
-
+        val ovalWidth = canvasWidth * 0.75f
+        val ovalHeight = ovalWidth * 1.3f
         val ovalLeft = (canvasWidth - ovalWidth) / 2
-        val ovalTop = (canvasHeight - ovalHeight) / 2
+        val ovalTop = (canvasHeight - ovalHeight) * 0.4f // Position slightly higher than true center
 
         val ovalRect = Rect(ovalLeft, ovalTop, ovalLeft + ovalWidth, ovalTop + ovalHeight)
         val ovalPath = Path().apply { addOval(ovalRect) }
 
-        // 1. Semi-transparent scrim around the oval (cut-out effect)
-        clipPath(ovalPath) {
-            // This clear will make the oval area transparent if drawn on a colored background.
-            // However, since we are overlaying on camera, we might not need this exact effect
-            // if we are just drawing borders.
-            // For a "cut-out" effect from a solid color overlay:
-             //drawRect(color = Color.Transparent.copy(alpha = 0.5f), blendMode = BlendMode.SrcOut)
-             drawRect(color = Color.Transparent.copy(alpha = 0.1f), blendMode = BlendMode.SrcOut)
-        }
-        // Instead of a full scrim, draw a dark overlay and then "clear" the oval area.
-        // This is a common way to create a "cutout"
-        val overlayColor = Color.Black.copy(alpha = 0.4f)
-        val fullCanvasRect = Path().apply { addRect(Rect(0f,0f, canvasWidth, canvasHeight))}
+        val overlayColor = Color.Black.copy(alpha = 0.5f)
+        val fullCanvasRectPath = Path().apply { addRect(Rect(0f, 0f, canvasWidth, canvasHeight)) }
         /*val cutoutPath = Path.combine(
-            operation = Path.Op.Difference, // Subtract oval from full rect
-            path1 = fullCanvasRect,
+            operation = Path.Op.Difference,
+            path1 = fullCanvasRectPath,
             path2 = ovalPath
         )
         drawPath(cutoutPath, color = overlayColor)*/
 
-
-        // 2. Static inner guideline (optional, could be dashed)
         drawOval(
-            color = Color.White.copy(alpha = 0.6f),
+            color = Color.White.copy(alpha = 0.7f),
             topLeft = Offset(ovalLeft, ovalTop),
             size = Size(ovalWidth, ovalHeight),
             style = Stroke(width = 2.dp.toPx())
         )
 
-        // 3. Animated pulsing outer border
         drawOval(
-            color = Color.Green.copy(alpha = animatedAlpha), // Pulsing alpha
+            color = Color.Green.copy(alpha = animatedAlpha),
             topLeft = Offset(
-                ovalLeft - (ovalWidth * (pulseStrength -1) / 2) , // Center the pulse expansion
-                ovalTop - (ovalHeight * (pulseStrength -1) /2)
+                ovalLeft - (ovalWidth * (pulseStrength - 1) / 2),
+                ovalTop - (ovalHeight * (pulseStrength - 1) / 2)
             ),
             size = Size(ovalWidth * pulseStrength, ovalHeight * pulseStrength),
             style = Stroke(width = 3.dp.toPx())
         )
-
-        // Text instruction (optional)
-        // You might want to use Text Composable outside Canvas for better text rendering
     }
 }
-
-
-/*
-import android.Manifest
-import android.util.Log
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.result.launch
-import androidx.camera.view.PreviewView
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.hilt.navigation.compose.hiltViewModel
-
-@Composable
-fun CameraPreviewScreen(viewModel: LivenessViewModel = hiltViewModel()) { // Assuming LivenessViewModel
-    val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val permissionState = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            viewModel.onPermissionGranted()
-        } else {
-            // Handle permission denial: show a message, etc.
-            Log.d("CameraPreviewScreen", "Camera permission denied")
-        }
-    }
-
-    // This will hold the PreviewView
-    val previewView = remember { PreviewView(context) }
-
-    LaunchedEffect(key1 = lifecycleOwner) { // Use lifecycleOwner or true if you only want to launch once
-        permissionState.launch(Manifest.permission.CAMERA)
-    }
-
-    // Observe a state from ViewModel, e.g., if permission is granted
-    val isCameraReady by viewModel.isCameraReady.collectAsState()
-
-    if (isCameraReady) {
-        AndroidView(
-            factory = { previewView },
-            modifier = Modifier.fillMaxSize(),
-            update = { view ->
-                viewModel.startCamera(
-                    lifecycleOwner = lifecycleOwner,
-                    surfaceProvider = previewView.surfaceProvider
-                )
-            }
-        )
-    } else {
-        // Show a placeholder, loading indicator, or permission request message
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Requesting camera permission or initializing camera...")
-        }
-    }
-}*/

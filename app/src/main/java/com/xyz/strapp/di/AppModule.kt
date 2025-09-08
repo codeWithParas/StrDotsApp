@@ -6,6 +6,7 @@ import androidx.datastore.dataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
+import androidx.work.WorkManager
 import com.xyz.strapp.data.dao.FaceImageDao
 import com.xyz.strapp.data.dao.LoginDao
 import com.xyz.strapp.data.database.AppDatabase
@@ -126,6 +127,12 @@ object AppModule {
         // , faceApiService: FaceApiService
     ): FaceLivenessRepository { // Use the fully qualified name or import
         return FaceLivenessRepository(faceImageDao)// , faceApiService )
+    }
+
+    @Provides
+    @Singleton // Or appropriate scope
+    fun provideWorkManager(@ApplicationContext context: Context): WorkManager {
+        return WorkManager.getInstance(context)
     }
 
 }

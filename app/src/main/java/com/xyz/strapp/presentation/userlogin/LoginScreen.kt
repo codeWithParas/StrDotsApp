@@ -92,8 +92,6 @@ fun LoginScreen(
                         duration = androidx.compose.material3.SnackbarDuration.Short
                     )
                 }
-                // Potentially clear sensitive fields from ViewModel after success
-                // loginViewModel.clearSensitiveData()
                 onLoginSuccess() // Trigger navigation
             }
             is LoginUiState.Error -> {
