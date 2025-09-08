@@ -64,18 +64,17 @@ class LoginViewModel @Inject constructor(
 
             result.fold(
                 onSuccess = { response ->
-                    // Handle successful login
-                    // e.g., save token, navigate to next screen
-                    // For now, just update UI state
-                    _loginUiState.value = LoginUiState.Success(response)
-                    Log.d("LoginViewModel", "Login Succeeded: ${response.isSuccess}")
-                    // You might want to store response.accessToken and response.userId here
-                    // using a session manager or SharedPreferences via the repository.
+                    if(response.isSuccess)
+                    {
+                        _loginUiState.value = LoginUiState.Success(response)
+                    }else{
+                        _loginUiState.value = LoginUiState.Error("Invalid Credentials")
+                    }
+
                 },
                 onFailure = { exception ->
                     // Handle login failure
                     _loginUiState.value = LoginUiState.Error(exception.message ?: "An unknown error occurred")
-                    Log.e("LoginViewModel", "Login Failed", exception)
                 }
             )
         }

@@ -4,7 +4,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.util.Base64
-import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -26,16 +25,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,25 +43,18 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.font.FontWeight.Companion.Bold
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.exifinterface.media.ExifInterface
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.xyz.strapp.R
 import com.xyz.strapp.domain.model.ProfileResponse
-import com.xyz.strapp.presentation.userlogin.LoginUiState
-import com.xyz.strapp.presentation.userlogin.LoginViewModel
-import com.xyz.strapp.utils.Constants
 import kotlinx.coroutines.launch
 import java.io.ByteArrayInputStream
 
 @Preview
 @Composable
 fun ProfileScreenPreview(){
-    ProfileScreen()
 }
 
 data class InfoItem(
@@ -75,9 +66,10 @@ data class InfoItem(
 @Composable
 fun ProfileScreen(
     profileViewModel: ProfileViewModel = hiltViewModel(),
+    onLogout: () -> Unit,
 ){
     val profileUIState by profileViewModel.profileUiState.collectAsState()
-//    val scope = rememberCoroutineScope()
+    val scope = rememberCoroutineScope()
 //    val snackbarHostState = remember { SnackbarHostState() }
 
 //    LaunchedEffect(profileUIState) {
@@ -95,7 +87,7 @@ fun ProfileScreen(
 //    }
 
     LaunchedEffect(key1 = Unit) {
-        profileViewModel.LoadProdile()
+        profileViewModel.loadProfile()
     }
 
     Surface(
@@ -107,7 +99,12 @@ fun ProfileScreen(
         when (val state = profileUIState) {
             is ProfileUiState.Success -> {
                 // When data is successfully loaded, show the profile content.
-                ProfileContent(profile = state.profileResponse)
+                ProfileContent(profile = state.profileResponse, {
+                    scope.launch {
+                        profileViewModel.Logout()
+                        onLogout()
+                    }
+                })
             }
 
             is ProfileUiState.Error -> {
@@ -129,7 +126,7 @@ fun ProfileScreen(
 }
 
 @Composable
-fun ProfileContent(profile: ProfileResponse, modifier: Modifier = Modifier) {
+fun ProfileContent(profile: ProfileResponse,onLogout: () -> Unit, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -171,6 +168,15 @@ fun ProfileContent(profile: ProfileResponse, modifier: Modifier = Modifier) {
             infoList = workInfo,
             modifier = Modifier
         )
+
+        Button(
+            modifier = Modifier.padding(10.dp).fillMaxWidth(),
+            onClick = {
+                onLogout()
+            }
+        ) {
+            Text(text = "Logout")
+        }
 
 
         // You can add more cards here for other information

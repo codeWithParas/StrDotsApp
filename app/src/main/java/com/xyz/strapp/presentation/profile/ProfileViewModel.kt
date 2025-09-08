@@ -4,8 +4,8 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.xyz.strapp.domain.model.ProfileResponse
+import com.xyz.strapp.domain.repository.LoginRepository
 import com.xyz.strapp.domain.repository.ProfileRepository
-import com.xyz.strapp.presentation.userlogin.LoginUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,11 +23,12 @@ sealed interface ProfileUiState {
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     private val profileRepository: ProfileRepository,
+    private val loginRepository: LoginRepository
 ) : ViewModel() {
 
     private val _UiState = MutableStateFlow<ProfileUiState>(ProfileUiState.Idle)
     val profileUiState: StateFlow<ProfileUiState> = _UiState.asStateFlow()
-    fun LoadProdile(){
+    fun loadProfile(){
         viewModelScope.launch {
             val result = profileRepository.getUserProfile()
             result.fold(
@@ -41,6 +42,10 @@ class ProfileViewModel @Inject constructor(
             )
         }
 
+    }
+
+    suspend fun Logout(){
+        loginRepository.clearAllUserData()
     }
 
     fun resetState() {

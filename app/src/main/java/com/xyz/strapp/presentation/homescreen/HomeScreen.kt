@@ -18,16 +18,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,7 +37,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -60,7 +56,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.xyz.strapp.R
 import com.xyz.strapp.presentation.profile.ProfileScreen
-import com.xyz.strapp.presentation.userlogin.LoginUiState
 import com.xyz.strapp.presentation.userlogin.LoginViewModel
 import com.xyz.strapp.ui.theme.StrAppTheme
 
@@ -81,7 +76,8 @@ fun HomeScreen(
     onNavigateToProfile: () -> Unit = {},
     // Add other navigation callbacks as needed, e.g., for TopAppBar actions
     onOpenDrawer: () -> Unit = {},
-    onSearchClicked: () -> Unit = {}
+    onSearchClicked: () -> Unit = {},
+    onLogout: () -> Unit = {}
 ) {
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -145,7 +141,7 @@ fun HomeScreen(
             when (selectedItemIndex) {
                 0 -> HomeTabContent(onNavigateToFaceLiveness)
                 1 -> FavoritesTabContent()
-                2 -> ProfileTabContent() // Pass ViewModel if needed
+                2 -> ProfileTabContent(onLogout = { onLogout() }) // Pass ViewModel if needed
             }
         }
     }
@@ -310,10 +306,8 @@ fun WebViewScreen(
     )
 }
 @Composable
-fun ProfileTabContent() {
-
-    ProfileScreen()
-
+fun ProfileTabContent(onLogout: () -> Unit) {
+    ProfileScreen( onLogout = {onLogout()})
 }
 
 
@@ -321,6 +315,5 @@ fun ProfileTabContent() {
 @Composable
 fun HomeScreenPreview() {
     StrAppTheme {
-        ProfileTabContent() // Removed onCheckIn as it wasn't used in the new design
     }
 }

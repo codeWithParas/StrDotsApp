@@ -195,12 +195,6 @@ fun LoginScreen(
                         // Continue button
                         Button(
                             onClick = {
-                                Toast.makeText(
-                                    context,
-                                    "Login with: $email",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-
                                 loginViewModel.onLoginClicked()
                             },
                             enabled = isFormValid,

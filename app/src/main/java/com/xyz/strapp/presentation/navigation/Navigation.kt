@@ -59,7 +59,14 @@ fun Navigation(
         composable(Screen.HomeScreen.route){
             HomeScreen(onNavigateToFaceLiveness = {
                 navController.navigate(Screen.LivelinessScreen.route)
-            })
+            },
+                onLogout = {
+                    navController.navigate(Screen.LoginScreen.route) {
+                        popUpTo(0) { // clear entire back stack
+                            inclusive = true
+                        }
+                    }
+                })
         }
         composable(Screen.LivelinessScreen.route){
             LivelinessScreen(
