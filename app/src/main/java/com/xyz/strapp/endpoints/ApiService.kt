@@ -3,12 +3,14 @@ package com.xyz.strapp.endpoints
 import com.xyz.strapp.domain.model.LoginRequest
 import com.xyz.strapp.domain.model.LoginResponse
 import com.xyz.strapp.domain.model.UploadImageRequest
+import com.xyz.strapp.domain.model.ProfileResponse
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.Header
 import retrofit2.http.Headers
+import retrofit2.http.GET
 import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
@@ -24,6 +26,9 @@ interface ApiService {
      */
     @POST("api/Auth/Login") // IMPORTANT: Replace with your actual login endpoint
     suspend fun login(@Body loginRequest: LoginRequest): Response<LoginResponse>
+
+    @GET("api/AttendanceRegister/GetUserDetails") // IMPORTANT: Replace with your actual login endpoint
+    suspend fun getUserProfile(@Header("Authorization") token: String): Response<ProfileResponse>
 
     // You can add other auth-related calls here later, e.g.:
     // @POST("api/v1/auth/register")

@@ -111,14 +111,14 @@ fun LivelinessScreen(viewModel: LivenessViewModel = hiltViewModel(), onNavigateB
             }
         }
         val statusText = if (livenessResults.isEmpty()) {
-            "No face detected. Please position your face in the camera."
+            "No face detected."
         } else {
             val liveFaces = livenessResults.count { it.value.isLive }
             val spoofFaces = livenessResults.count { !it.value.isLive }
             when {
                 //liveFaces == 0 -> "Live face(s) detected: $liveFaces"
-                liveFaces > 0 -> "Live face(s) detected: $liveFaces"
-                spoofFaces > 0 -> "Spoof attempt detected. Please ensure it's a real person."
+                liveFaces > 0 -> "Face detected."
+                spoofFaces > 0 -> "Spoof detected."
                 else -> "Processing..." // Should not happen if livenessResults is not empty and all are processed
             }
         }
@@ -127,7 +127,7 @@ fun LivelinessScreen(viewModel: LivenessViewModel = hiltViewModel(), onNavigateB
         when (val state = uiState) {
             is LivenessScreenUiState.Detecting -> {
                 LivenessStatusMessageOverlay(
-                    message = "Position your face in the guide --> \n $statusText",
+                    message = "Position your face in the Oval and blick to start detection.\n $statusText",
                     modifier = Modifier.align(Alignment.BottomCenter)
                 )
             }
@@ -135,7 +135,7 @@ fun LivelinessScreen(viewModel: LivenessViewModel = hiltViewModel(), onNavigateB
                 if (isTimerVisible && countdownValue > 0) {
                     val countMsg = when(countdownValue){
                         5, 4 -> "Position your face in the guided frame."
-                        else -> "Please remain still and normal."
+                        else -> "Please try and remain still."
                     }
                     CountdownOverlayTopMsg(
                         modifier = Modifier.align(Alignment.TopCenter).padding(top = 80.dp),
@@ -172,8 +172,9 @@ fun LivenessStatusMessageOverlay(message: String, modifier: Modifier = Modifier)
         contentAlignment = Alignment.Center
     ) {
         Text(
+            modifier = modifier.padding(bottom = 50.dp),
             text = message,
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.bodySmall,
             color = Color.White,
             textAlign = TextAlign.Center
         )
@@ -184,14 +185,15 @@ fun LivenessStatusMessageOverlay(message: String, modifier: Modifier = Modifier)
 fun CountdownOverlayTopMsg(modifier: Modifier = Modifier, statusText: String) {
     Box(
         modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.TopCenter
+        contentAlignment = Alignment.TopCenter // 👈 keeps things centered horizontally, at the top
     ) {
-        Spacer(modifier = Modifier.height(70.dp))
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(top = 10.dp)
+        ) {
             Text(
                 text = statusText,
-                fontSize = 25.sp,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.bodyMedium,
                 color = Color.White.copy(alpha = 0.8f),
                 modifier = Modifier
                     .background(Color.Black.copy(alpha = 0.3f), shape = CircleShape)

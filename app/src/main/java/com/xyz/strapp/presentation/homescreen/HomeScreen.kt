@@ -1,16 +1,23 @@
 package com.xyz.strapp.presentation.homescreen
 
 import android.util.Log
+import android.view.ViewGroup
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
@@ -44,10 +51,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.xyz.strapp.R
+import com.xyz.strapp.presentation.profile.ProfileScreen
 import com.xyz.strapp.presentation.userlogin.LoginUiState
 import com.xyz.strapp.presentation.userlogin.LoginViewModel
 import com.xyz.strapp.ui.theme.StrAppTheme
@@ -77,7 +89,7 @@ fun HomeScreen(
     var selectedItemIndex by rememberSaveable { mutableIntStateOf(0) }
     val bottomNavItems = listOf(
         BottomNavItem("Home", Icons.Filled.Home, "Home Screen"),
-        BottomNavItem("Favorites", Icons.Filled.Favorite, "Favorites Screen"),
+        BottomNavItem("Dashboard", Icons.Filled.Dashboard, "Dashboard Screen"),
         BottomNavItem("Profile", Icons.Filled.AccountCircle, "Profile Screen")
     )
 
@@ -133,7 +145,7 @@ fun HomeScreen(
             when (selectedItemIndex) {
                 0 -> HomeTabContent(onNavigateToFaceLiveness)
                 1 -> FavoritesTabContent()
-                2 -> ProfileTabContent(loginViewModel) // Pass ViewModel if needed
+                2 -> ProfileTabContent() // Pass ViewModel if needed
             }
         }
     }
@@ -155,9 +167,9 @@ fun HomeTabContent(onNavigateToFaceLiveness: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top // Changed from Center for more typical home layout
     ) {
-        Text("RTS Face Liveness Attendance", style = MaterialTheme.typography.headlineMedium)
+        Text("RTS Attendance App", style = MaterialTheme.typography.headlineMedium)
         Spacer(modifier = Modifier.height(16.dp))
-        Text("Note - Select Check-In button to mark your attendance. Please make sure your camera permissions are enabled for this application to work. If not, then please enable camera permissions from app setting option.")
+        Text("Note - Select Check-In button to mark your attendance, try and place your phone in a way to place your face withing the oval to detect the face.")
         Spacer(modifier = Modifier.height(30.dp))
         // Example: Placeholder for a list of items
         Column {
@@ -170,12 +182,25 @@ fun HomeTabContent(onNavigateToFaceLiveness: () -> Unit) {
                     onNavigateToFaceLiveness()
                 }
             ) {
-                Text(
-                    text = "CheckIn Attendance",
-                    modifier = Modifier.padding(26.dp),
-                    style = MaterialTheme.typography.titleLarge,
-                    textAlign = TextAlign.Center
+                val image = painterResource(R.drawable.checkin)
+                Row(
+                    modifier = Modifier.padding(start = 20.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Image(
+                    modifier = Modifier.height(50.dp).width(50.dp),
+
+                    painter = image,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    alpha = 0.5F
                 )
+                    Text(
+                        text = "Check In",
+                        modifier = Modifier.padding(26.dp),
+                        style = MaterialTheme.typography.titleLarge,
+                        textAlign = TextAlign.Center
+                    )}
             }
             Spacer(modifier = Modifier.height(30.dp))
             Card(
@@ -184,12 +209,26 @@ fun HomeTabContent(onNavigateToFaceLiveness: () -> Unit) {
                     .padding(vertical = 4.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                Text(
-                    text = "Register User",
-                    modifier = Modifier.padding(26.dp),
-                    style = MaterialTheme.typography.titleLarge,
-                    textAlign = TextAlign.Center,
-                )
+                val image = painterResource(R.drawable.checkout)
+                Row(
+                    modifier = Modifier.padding(start = 20.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Image(
+                        modifier = Modifier.height(50.dp).width(50.dp),
+
+                        painter = image,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        alpha = 0.5F
+                    )
+                    Text(
+                        text = "Check Out",
+                        modifier = Modifier.padding(26.dp),
+                        style = MaterialTheme.typography.titleLarge,
+                        textAlign = TextAlign.Center,
+                    )
+                }
             }
         }
 
@@ -218,67 +257,63 @@ fun FavoritesTabContent() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(0.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text("Your Favorites", style = MaterialTheme.typography.headlineMedium)
-        Spacer(modifier = Modifier.height(16.dp))
-        Icon(
-            Icons.Filled.Favorite,
-            contentDescription = "Favorites Icon",
-            modifier = Modifier.height(48.dp)
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text("Items you've marked as favorite will appear here.")
+        WebViewScreen("http://103.186.230.15:6203/AttendanceDashboard?email=ravi@dtc.com", modifier = Modifier)
+//        Text("Your Favorites", style = MaterialTheme.typography.headlineMedium)
+//        Spacer(modifier = Modifier.height(16.dp))
+//        Icon(
+//            Icons.Filled.Favorite,
+//            contentDescription = "Favorites Icon",
+//            modifier = Modifier.height(48.dp)
+//        )
+//        Spacer(modifier = Modifier.height(8.dp))
+//        Text("Items you've marked as favorite will appear here.")
     }
 }
 
 @Composable
-fun ProfileTabContent(loginViewModel: LoginViewModel) {
-    // Replace with your actual Profile screen content
-    // You can use the loginViewModel here to display user info or offer logout
-    val loginUiState by loginViewModel.loginUiState.collectAsState()
-    val email by loginViewModel.email.collectAsState() // Example: if email is part of LoginViewModel state
+fun WebViewScreen(
+    url: String,
+    modifier: Modifier = Modifier
+) {
+    // AndroidView is a composable that can host a traditional Android View.
+    AndroidView(
+        modifier = modifier,
+        factory = { context ->
+            // The factory block is where you create and initialize the View.
+            // This block is called only once.
+            WebView(context).apply {
+                // Basic configuration for the WebView
+                settings.javaScriptEnabled = true
+                layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text("User Profile", style = MaterialTheme.typography.headlineMedium)
-        Spacer(modifier = Modifier.height(16.dp))
-        Icon(
-            Icons.Filled.AccountCircle,
-            contentDescription = "Profile Icon",
-            modifier = Modifier.height(48.dp)
-        )
-        Spacer(modifier = Modifier.height(16.dp))
+                // The WebViewClient is essential for handling navigation within the WebView
+                // instead of letting the system open a browser.
+                webViewClient = WebViewClient()
 
-        if (loginUiState is LoginUiState.Success) {
-            // Assuming LoginResponse has user details, or LoginViewModel exposes them
-            // For example, if LoginResponse was stored or email is available:
-            Text("Email: $email", style = MaterialTheme.typography.bodyLarge)
-            // Text("User ID: ${(loginUiState as LoginUiState.Success).loginResponse.userId}", style = MaterialTheme.typography.bodyLarge)
-        } else if (loginUiState is LoginUiState.Loading) {
-            CircularProgressIndicator()
-        } else {
-            Text(
-                "Not logged in or user data not available.",
-                style = MaterialTheme.typography.bodyLarge
-            )
+                // Load the initial URL
+                loadUrl(url)
+            }
+        },
+        update = { webView ->
+            // The update block is called when the composable is recomposed.
+            // You can use it to update the View with new state.
+            // For example, if the `url` parameter changes, you can load the new URL here.
+            webView.loadUrl(url)
         }
-        Spacer(modifier = Modifier.height(24.dp))
-        Button(onClick = {
-            // TODO: Implement logout functionality
-            // loginViewModel.logout() // Example call
-            Log.d("ProfileTab", "Logout button clicked")
-        }) {
-            Text("Logout (Placeholder)")
-        }
-    }
+    )
+}
+@Composable
+fun ProfileTabContent() {
+
+    ProfileScreen()
+
 }
 
 
@@ -286,6 +321,6 @@ fun ProfileTabContent(loginViewModel: LoginViewModel) {
 @Composable
 fun HomeScreenPreview() {
     StrAppTheme {
-        HomeScreen() // Removed onCheckIn as it wasn't used in the new design
+        ProfileTabContent() // Removed onCheckIn as it wasn't used in the new design
     }
 }

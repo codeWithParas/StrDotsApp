@@ -7,26 +7,22 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import com.xyz.strapp.domain.model.LoginEntity
+import com.xyz.strapp.domain.model.ProfileEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface LoginDao {
+interface ProfileDao {
 
     @Insert(onConflict = OnConflictStrategy.Companion.REPLACE)
-    suspend fun insert(loginEntity: LoginEntity)
+    suspend fun insert(profileEntity: ProfileEntity)
 
     @Update
-    suspend fun update(loginEntity: LoginEntity)
+    suspend fun update(profileEntity: ProfileEntity)
 
     @Delete
-    suspend fun delete(loginEntity: LoginEntity)
+    suspend fun delete(profileEntity: ProfileEntity)
 
-    @Query("SELECT * FROM login_table")
-    fun getUser(): Flow<List<LoginEntity>>
-
-    //delete all data
-    @Query("DELETE FROM login_table")
-    suspend fun deleteAll()
-
+    @Query("SELECT * FROM profile_table")
+    fun getProfile(): Flow<List<ProfileEntity>>
 
 }

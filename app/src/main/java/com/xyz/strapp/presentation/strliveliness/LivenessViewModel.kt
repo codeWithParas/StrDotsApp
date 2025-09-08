@@ -101,7 +101,7 @@ class LivenessViewModel @Inject constructor(
                     if (trackedFaceResult == null || !trackedFaceResult.value.isLive) {
                         Log.d(TAG, "###@@@ Face for countdown lost or became spoof. Cancelling timer.")
                         viewModelScope.launch {
-                            delay(3000)
+                            //delay(3000)
                             cancelCountdown()
                         }
                     }

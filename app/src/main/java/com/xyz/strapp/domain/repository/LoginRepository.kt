@@ -6,6 +6,7 @@ import androidx.datastore.core.IOException
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.xyz.strapp.data.dao.LoginDao
 import com.xyz.strapp.domain.model.LoginEntity
@@ -28,6 +29,7 @@ class LoginRepository @Inject constructor(
 
     object PreferencesKeys {
         val AUTH_TOKEN = stringPreferencesKey("auth_token")
+        val TOKEN_EXPIRY = longPreferencesKey("token_expiry")
         val AUTH_TENANT_ID = stringPreferencesKey("tenant_id")
     }
 
@@ -45,7 +47,11 @@ class LoginRepository @Inject constructor(
                     response.body()?.let { loginData ->
                         loginData.token?.let { token ->
                             // Save token using DataStore (suspend function)
-                            saveAuthToken(token)
+
+                            val currentTime = System.currentTimeMillis()
+                            val expiryTime = currentTime + (24 * 60 * 60 * 1000)
+                            saveAuthToken(token,expiryTime)
+
                             Log.d("LoginRepository", "Auth token saved via DataStore.")
                         } ?: Log.w("LoginRepository", "Access token is null in LoginResponse.")
                         loginData.tenentId?.let { tenantId ->
@@ -71,13 +77,40 @@ class LoginRepository @Inject constructor(
         }
     }
 
-    private suspend fun saveAuthToken(token: String) {
+    suspend fun isLoggedIn(): Boolean {
+        if(getAuthTokenOnce() == null){
+            return  false
+        }
+        val expiryTime = getExpiry().first()
+        if(expiryTime == null){
+            return false
+        }
+        if(System.currentTimeMillis() > expiryTime){
+            return false
+        }
+        return true
+    }
+
+    suspend fun clearAllUserData() {
+        // Clear DataStore preferences
+        clearAuthToken()
+        clearTenantId()
+        clearExpiry()
+        // Clear Room database
+        deleteAll()
+        Log.d("LoginRepository", "All user data has been cleared.")
+    }
+    private suspend fun saveAuthToken(token: String, expiryTime: Long) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.AUTH_TOKEN] = token
         }
+
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.TOKEN_EXPIRY] = expiryTime
+        }
     }
 
-    fun getAuthTokenFlow(): Flow<String?> {
+    private fun getAuthTokenFlow(): Flow<String?> {
         return dataStore.data
             .catch { exception ->
                 // dataStore.data throws an IOException when an error is encountered when reading data
@@ -99,7 +132,7 @@ class LoginRepository @Inject constructor(
         }
     }
 
-    fun getTenantIdFlow(): Flow<String?> {
+    private fun getTenantIdFlow(): Flow<String?> {
         return dataStore.data
             .catch { exception ->
                 // dataStore.data throws an IOException when an error is encountered when reading data
@@ -115,39 +148,56 @@ class LoginRepository @Inject constructor(
             }
     }
 
-    /**
-     * Retrieves the auth token once. Use getAuthTokenFlow() for reactive updates.
-     */
-    suspend fun getAuthTokenOnce(): String? {
+    private fun getExpiry(): Flow<Long?> {
+        return dataStore.data
+            .catch { exception ->
+                // dataStore.data throws an IOException when an error is encountered when reading data
+                if (exception is IOException) {
+                    Log.e("LoginRepository", "Error reading tenant id token from DataStore.", exception)
+                    emit(emptyPreferences())
+                } else {
+                    throw exception
+                }
+            }
+            .map { preferences ->
+                preferences[PreferencesKeys.TOKEN_EXPIRY]
+            }
+    }
+
+    private suspend fun getAuthTokenOnce(): String? {
         return getAuthTokenFlow().first() // Gets the first emitted value
     }
 
-    suspend fun getTenantIdOnce(): String? {
+    private suspend fun getTenantIdOnce(): String? {
         return getTenantIdFlow().first() // Gets the first emitted value
     }
 
 
-    suspend fun clearAuthToken() {
+    private suspend fun clearAuthToken() {
         dataStore.edit { preferences ->
             preferences.remove(PreferencesKeys.AUTH_TOKEN)
         }
         Log.d("LoginRepository", "Auth token cleared from DataStore.")
     }
 
-    suspend fun clearTenantId() {
+    private suspend fun clearExpiry() {
+        dataStore.edit { preferences ->
+            preferences.remove(PreferencesKeys.TOKEN_EXPIRY)
+        }
+        Log.d("LoginRepository", "token expiry cleared from DataStore.")
+    }
+
+    private suspend fun clearTenantId() {
         dataStore.edit { preferences ->
             preferences.remove(PreferencesKeys.AUTH_TENANT_ID)
         }
         Log.d("LoginRepository", "Tenant id cleared from DataStore.")
     }
 
-    suspend fun isLoggedIn(): Boolean {
-        return getAuthTokenOnce() != null
-    }
 
-
-    suspend fun insertUserLoginInfo(loginEntity: LoginEntity) = loginDao.insert(loginEntity)
-    suspend fun updateUserLoginInfo(loginEntity: LoginEntity) = loginDao.update(loginEntity)
-    suspend fun deleteUserLoginInfo(loginEntity: LoginEntity) = loginDao.delete(loginEntity)
-    fun getUserInfo(): Flow<List<LoginEntity>> = loginDao.getUser()
+    private suspend fun deleteAll() = loginDao.deleteAll()
+    private suspend fun insertUserLoginInfo(loginEntity: LoginEntity) = loginDao.insert(loginEntity)
+    private suspend fun updateUserLoginInfo(loginEntity: LoginEntity) = loginDao.update(loginEntity)
+    private suspend fun deleteUserLoginInfo(loginEntity: LoginEntity) = loginDao.delete(loginEntity)
+    private fun getUserInfo(): Flow<List<LoginEntity>> = loginDao.getUser()
 }

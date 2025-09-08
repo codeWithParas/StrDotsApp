@@ -7,6 +7,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
 import com.xyz.strapp.data.dao.FaceImageDao
 import com.xyz.strapp.data.dao.LoginDao
+import com.xyz.strapp.data.dao.ProfileDao
 import com.xyz.strapp.data.database.AppDatabase
 import com.xyz.strapp.domain.model.auth.AuthInterceptor
 import com.xyz.strapp.domain.model.auth.MyTokenProvider
@@ -113,6 +114,12 @@ object AppModule {
     @Provides
     fun provideLoginDao(appDatabase: AppDatabase): LoginDao {
         return appDatabase.loginDao()
+    }
+
+    @Singleton
+    @Provides
+    fun provideProfileDao(appDatabase: AppDatabase): ProfileDao {
+        return appDatabase.profileDao()
     }
 
     /*@Singleton

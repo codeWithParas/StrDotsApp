@@ -11,6 +11,7 @@ import com.xyz.strapp.presentation.StartScreen
 import com.xyz.strapp.presentation.homescreen.HomeScreen
 import com.xyz.strapp.presentation.strliveliness.LivelinessScreen
 import com.xyz.strapp.presentation.userlogin.LoginScreen
+import com.xyz.strapp.presentation.userlogin.LoginViewModel
 
 @Composable
 fun Navigation(
@@ -36,6 +37,7 @@ fun Navigation(
                         }
                     }
                     else -> {
+                        authStatusViewModel.logout()
                         navController.navigate(Screen.LoginScreen.route){
                             popUpTo(Screen.StartScreen.route){
                                 inclusive = true

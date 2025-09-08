@@ -39,7 +39,7 @@ class AuthStatusViewModel @Inject constructor(
     // You might also have a logout function that uses loginRepository.clearAuthToken()
     fun logout() {
         viewModelScope.launch {
-            loginRepository.clearAuthToken()
+            loginRepository.clearAllUserData()
             _isUserLoggedIn.value = false // Update state after clearing token
         }
     }
