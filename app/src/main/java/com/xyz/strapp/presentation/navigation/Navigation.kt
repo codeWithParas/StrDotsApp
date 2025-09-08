@@ -60,7 +60,9 @@ fun Navigation(
             })
         }
         composable(Screen.LivelinessScreen.route){
-            LivelinessScreen()
+            LivelinessScreen(
+                onNavigateBack = { navController.popBackStack(Screen.HomeScreen.route, false) },
+            )
         }
     }
 

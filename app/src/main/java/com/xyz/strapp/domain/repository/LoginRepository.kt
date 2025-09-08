@@ -19,17 +19,14 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
-import kotlin.collections.first
-import kotlin.collections.map
-import kotlin.collections.remove
 
 class LoginRepository @Inject constructor(
     private val loginDao: LoginDao,
-    private val authApiService: ApiService,
+    private val apiService: ApiService,
     private val dataStore: DataStore<Preferences> // Injected DataStore
 ) {
 
-    private object PreferencesKeys {
+    object PreferencesKeys {
         val AUTH_TOKEN = stringPreferencesKey("auth_token")
         val AUTH_TENANT_ID = stringPreferencesKey("tenant_id")
     }
@@ -43,7 +40,7 @@ class LoginRepository @Inject constructor(
     suspend fun loginUserRemote(loginRequest: LoginRequest): Result<LoginResponse> {
         return withContext(Dispatchers.IO) { // Switch to IO for network call
             try {
-                val response = authApiService.login(loginRequest)
+                val response = apiService.login(loginRequest)
                 if (response.isSuccessful) {
                     response.body()?.let { loginData ->
                         loginData.token?.let { token ->
