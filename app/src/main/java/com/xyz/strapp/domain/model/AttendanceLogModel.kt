@@ -1,17 +1,61 @@
 package com.xyz.strapp.domain.model
 
-data class AttendanceLogModel(
-    val id: Int,
-    val date: String,
-    val checkInTime: String,
-    val checkOutTime: String?,
-    val status: String,
-    val location: String
-)
+import com.google.gson.annotations.SerializedName
+import com.xyz.strapp.utils.Utils
+import java.text.SimpleDateFormat
+import java.util.Locale
 
-// Response wrapper for API
-data class AttendanceLogsResponse(
-    val success: Boolean,
+data class AttendanceLogModel(
+    @SerializedName("employeeName")
+    val employeeName: String,
+    
+    @SerializedName("employeeCode")
+    val employeeCode: String,
+    
+    @SerializedName("latitude")
+    val latitude: Double,
+    
+    @SerializedName("longitude")
+    val longitude: Double,
+    
+    @SerializedName("dateTime")
+    val dateTime: String,
+    
+    @SerializedName("message")
     val message: String,
-    val logs: List<AttendanceLogModel>
-)
+    
+    @SerializedName("action")
+    val action: String
+) {
+    // Helper functions to format data for display
+    fun getFormattedDate(): String {
+        return try {
+            val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
+            val date = inputFormat.parse(dateTime)
+            date?.let {
+                SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(it)
+            } ?: dateTime
+        } catch (e: Exception) {
+            dateTime
+        }
+    }
+    
+    fun getFormattedTime(): String {
+        return try {
+            val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
+            val date = inputFormat.parse(dateTime)
+            date?.let {
+                SimpleDateFormat("HH:mm", Locale.getDefault()).format(it)
+            } ?: dateTime
+        } catch (e: Exception) {
+            dateTime
+        }
+    }
+    
+    fun getLocationString(): String {
+        return "Lat: $latitude, Long: $longitude"
+    }
+}
+
+// The API returns a direct array, not wrapped in an object
+typealias AttendanceLogsResponse = List<AttendanceLogModel>

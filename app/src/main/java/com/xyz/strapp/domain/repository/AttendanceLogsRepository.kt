@@ -18,11 +18,11 @@ class AttendanceLogsRepository @Inject constructor(
         try {
             val response = apiService.getAttendanceLogs("Bearer $authToken")
             if (response.isSuccessful) {
-                val logsResponse = response.body()
-                if (logsResponse != null && logsResponse.success) {
-                    emit(Result.success(logsResponse.logs))
+                val logs = response.body()
+                if (logs != null) {
+                    emit(Result.success(logs))
                 } else {
-                    emit(Result.failure(Exception(logsResponse?.message ?: "Unknown error")))
+                    emit(Result.failure(Exception("No logs data received")))
                 }
             } else {
                 emit(Result.failure(Exception("Failed to fetch logs: ${response.code()}")))

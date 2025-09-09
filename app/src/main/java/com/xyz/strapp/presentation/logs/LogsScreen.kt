@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Card
@@ -37,9 +38,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.xyz.strapp.domain.model.AttendanceLogModel
+import com.xyz.strapp.presentation.logs.LogsPreviewData
+import com.xyz.strapp.ui.theme.StrAppTheme
 
 @Composable
 fun LogsScreen(
@@ -159,7 +163,7 @@ fun AttendanceLogItem(log: AttendanceLogModel) {
                     tint = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = log.date,
+                    text = log.getFormattedDate(),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(start = 8.dp)
@@ -167,30 +171,31 @@ fun AttendanceLogItem(log: AttendanceLogModel) {
                 
                 Spacer(modifier = Modifier.weight(1f))
                 
-                // Status indicator
-                val (statusColor, statusIcon) = when (log.status.lowercase()) {
-                    "present" -> Color(0xFF4CAF50) to Icons.Default.CheckCircle
+                // Action indicator (CheckIn/CheckOut)
+                val (actionColor, actionIcon) = when (log.action.lowercase()) {
+                    "checkin" -> Color(0xFF4CAF50) to Icons.Default.CheckCircle
+                    "checkout" -> Color(0xFF2196F3) to Icons.Default.CheckCircle
                     else -> Color(0xFFFF9800) to Icons.Default.Error
                 }
                 
                 Box(
                     modifier = Modifier
                         .background(
-                            color = statusColor.copy(alpha = 0.1f),
+                            color = actionColor.copy(alpha = 0.1f),
                             shape = RoundedCornerShape(4.dp)
                         )
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = statusIcon,
+                            imageVector = actionIcon,
                             contentDescription = null,
-                            tint = statusColor,
+                            tint = actionColor,
                             modifier = Modifier.padding(end = 4.dp)
                         )
                         Text(
-                            text = log.status,
-                            color = statusColor,
+                            text = log.action,
+                            color = actionColor,
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -199,30 +204,46 @@ fun AttendanceLogItem(log: AttendanceLogModel) {
             
             Divider(modifier = Modifier.padding(vertical = 8.dp))
             
-            // Check-in time
+            // Employee info with code
             LogInfoRow(
-                icon = Icons.Default.Schedule,
-                label = "Check In",
-                value = log.checkInTime
+                icon = Icons.Default.Person,
+                label = "Employee",
+                value = if (log.employeeName != "NotFound") 
+                    "${log.employeeName} - ${log.employeeCode}" 
+                else 
+                    "N/A"
             )
             
-            // Check-out time (if available)
-            log.checkOutTime?.let {
-                Spacer(modifier = Modifier.height(8.dp))
-                LogInfoRow(
-                    icon = Icons.Default.Schedule,
-                    label = "Check Out",
-                    value = it
-                )
-            }
+            // Time
+            Spacer(modifier = Modifier.height(8.dp))
+            LogInfoRow(
+                icon = Icons.Default.Schedule,
+                label = "Time",
+                value = log.getFormattedTime()
+            )
             
             // Location
             Spacer(modifier = Modifier.height(8.dp))
             LogInfoRow(
                 icon = Icons.Default.LocationOn,
                 label = "Location",
-                value = log.location
+                value = log.getLocationString()
             )
+            
+            // Message (if not "No message")
+            if (log.message != "No message") {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Message:",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = log.message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
         }
     }
 }
@@ -281,5 +302,45 @@ fun ErrorState(message: String) {
                 modifier = Modifier.padding(horizontal = 32.dp)
             )
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun LogsScreenSuccessPreview() {
+    StrAppTheme {
+        SuccessState(logs = LogsPreviewData.mockLogs)
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun LogsScreenEmptyPreview() {
+    StrAppTheme {
+        EmptyState()
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun LogsScreenLoadingPreview() {
+    StrAppTheme {
+        LoadingState()
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun LogsScreenErrorPreview() {
+    StrAppTheme {
+        ErrorState(message = "Failed to connect to server")
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun AttendanceLogItemPreview() {
+    StrAppTheme {
+        AttendanceLogItem(log = LogsPreviewData.mockLogs.first())
     }
 }
