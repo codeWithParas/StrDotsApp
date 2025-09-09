@@ -5,9 +5,9 @@ import androidx.room.RoomDatabase
 import com.xyz.strapp.data.dao.FaceImageDao
 import com.xyz.strapp.data.dao.LoginDao
 import com.xyz.strapp.data.dao.ProfileDao
-import com.xyz.strapp.domain.model.FaceImageEntity
-import com.xyz.strapp.domain.model.LoginEntity
-import com.xyz.strapp.domain.model.ProfileEntity
+import com.xyz.strapp.domain.model.entity.FaceImageEntity
+import com.xyz.strapp.domain.model.entity.LoginEntity
+import com.xyz.strapp.domain.model.entity.ProfileEntity
 
 @Database(entities = [LoginEntity::class, ProfileEntity::class, FaceImageEntity::class], version = 1, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {

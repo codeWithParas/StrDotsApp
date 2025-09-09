@@ -6,8 +6,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
-import com.xyz.strapp.domain.model.LoginEntity
-import com.xyz.strapp.domain.model.ProfileEntity
+import com.xyz.strapp.domain.model.entity.ProfileEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao

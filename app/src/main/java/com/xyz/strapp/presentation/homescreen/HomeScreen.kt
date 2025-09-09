@@ -70,11 +70,10 @@ data class BottomNavItem(
 @Composable
 fun HomeScreen(
     loginViewModel: LoginViewModel = hiltViewModel(), // Kept for potential use in Profile tab
-    onNavigateToFaceLiveness: () -> Unit = {},
+    onNavigateToFaceLiveness: (Boolean) -> Unit = {},
     onNavigateToHome: () -> Unit = {},
     onNavigateToFavorites: () -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
-    // Add other navigation callbacks as needed, e.g., for TopAppBar actions
     onOpenDrawer: () -> Unit = {},
     onSearchClicked: () -> Unit = {},
     onLogout: () -> Unit = {}
@@ -107,7 +106,7 @@ fun HomeScreen(
                     IconButton(onClick = { showMenu = !showMenu }) {
                         Icon(Icons.Filled.MoreVert, contentDescription = "More options")
                     }
-                    // TODO: Implement DropdownMenu for 'showMenu'
+                    // Implement DropdownMenu for 'showMenu'
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -154,7 +153,7 @@ fun HomeScreen(
 //    val contentDescription: String,
 // )
 @Composable
-fun HomeTabContent(onNavigateToFaceLiveness: () -> Unit) {
+fun HomeTabContent(onNavigateToFaceLiveness: (Boolean) -> Unit) {
     // Replace with your actual Home screen content
     Column(
         modifier = Modifier
@@ -175,7 +174,7 @@ fun HomeTabContent(onNavigateToFaceLiveness: () -> Unit) {
                     .padding(vertical = 4.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                 onClick = {
-                    onNavigateToFaceLiveness()
+                    onNavigateToFaceLiveness(true)
                 }
             ) {
                 val image = painterResource(R.drawable.checkin)
@@ -185,7 +184,6 @@ fun HomeTabContent(onNavigateToFaceLiveness: () -> Unit) {
                 ) {
                     Image(
                     modifier = Modifier.height(50.dp).width(50.dp),
-
                     painter = image,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
@@ -203,7 +201,10 @@ fun HomeTabContent(onNavigateToFaceLiveness: () -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 4.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                onClick = {
+                    onNavigateToFaceLiveness(false)
+                }
             ) {
                 val image = painterResource(R.drawable.checkout)
                 Row(

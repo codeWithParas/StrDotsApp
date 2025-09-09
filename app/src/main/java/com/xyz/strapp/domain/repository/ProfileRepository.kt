@@ -8,7 +8,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.xyz.strapp.data.dao.ProfileDao
-import com.xyz.strapp.domain.model.ProfileEntity
+import com.xyz.strapp.domain.model.entity.ProfileEntity
 import com.xyz.strapp.domain.model.ProfileResponse
 import com.xyz.strapp.endpoints.ApiService
 import kotlinx.coroutines.Dispatchers

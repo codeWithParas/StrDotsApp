@@ -55,7 +55,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 
 @Composable
-fun LivelinessScreen(viewModel: LivenessViewModel = hiltViewModel(), onNavigateBack: () -> Unit) {
+fun LivelinessScreen(viewModel: LivenessViewModel = hiltViewModel(), onNavigateBack: () -> Unit, isCheckInFlow: Boolean) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val permissionState = rememberLauncherForActivityResult(
@@ -89,6 +89,7 @@ fun LivelinessScreen(viewModel: LivenessViewModel = hiltViewModel(), onNavigateB
                 update = {
                     viewModel.startCamera(
                         context = context,
+                        isCheckInFlow = isCheckInFlow,
                         lifecycleOwner = lifecycleOwner,
                         surfaceProvider = previewView.surfaceProvider
                     )

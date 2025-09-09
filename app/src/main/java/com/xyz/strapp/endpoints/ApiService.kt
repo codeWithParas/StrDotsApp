@@ -1,5 +1,6 @@
 package com.xyz.strapp.endpoints
 
+import com.xyz.strapp.domain.model.CheckInResponse
 import com.xyz.strapp.domain.model.LoginRequest
 import com.xyz.strapp.domain.model.LoginResponse
 import com.xyz.strapp.domain.model.UploadImageRequest
@@ -53,7 +54,17 @@ interface ApiService {
     @Multipart
     @POST("api/AttendanceRegister/CheckIn")
     suspend fun startCheckIn(
-        @Header("Authorization") authToken: String,
+        //@Header("Authorization") authToken: String,
+        @Part imagePart: MultipartBody.Part,
+        @Query("Latitude") latitude: Float,
+        @Query("Longitude") longitude: Float,
+        @Query("dateTime") dateTime: String
+    ): Response<CheckInResponse>
+
+    @Multipart
+    @POST("api/AttendanceRegister/CheckOut")
+    suspend fun startCheckOut(
+        //@Header("Authorization") authToken: String,
         @Part imagePart: MultipartBody.Part,
         @Query("Latitude") latitude: Float,
         @Query("Longitude") longitude: Float,
