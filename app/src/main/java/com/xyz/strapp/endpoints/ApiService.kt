@@ -1,6 +1,7 @@
 package com.xyz.strapp.endpoints
 
 import com.xyz.strapp.domain.model.CheckInResponse
+import com.xyz.strapp.domain.model.AttendanceLogsResponse
 import com.xyz.strapp.domain.model.LoginRequest
 import com.xyz.strapp.domain.model.LoginResponse
 import com.xyz.strapp.domain.model.UploadImageRequest
@@ -80,6 +81,16 @@ interface ApiService {
     // You can add other API calls here, for example:
     // @GET("api/v1/user_status/{userId}")
     // suspend fun getUserStatus(@Path("userId") userId: String): Response<UserStatusResponse>
+
+    /**
+     * Fetches attendance logs for the current user
+     * @param authToken The authentication token
+     * @return A Retrofit Response wrapping an AttendanceLogsResponse
+     */
+    @GET("api/AttendanceRegister/GetLogs")
+    suspend fun getAttendanceLogs(
+        @Header("Authorization") authToken: String
+    ): Response<AttendanceLogsResponse>
 }
 
 /**

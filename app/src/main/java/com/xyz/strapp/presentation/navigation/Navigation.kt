@@ -12,6 +12,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.xyz.strapp.presentation.StartScreen
 import com.xyz.strapp.presentation.homescreen.HomeScreen
+import com.xyz.strapp.presentation.logs.LogsScreen
 import com.xyz.strapp.presentation.strliveliness.LivelinessScreen
 import com.xyz.strapp.presentation.userlogin.LoginScreen
 import com.xyz.strapp.presentation.userlogin.LoginViewModel
@@ -96,6 +97,7 @@ sealed class Screen(val route: String) {
     object RegisterScreen : Screen("register_screen")
     object HomeScreen : Screen("home_screen")
     object ProfileScreen : Screen("profile_screen")
+    object LogsScreen:Screen("logs_screen")
     object LivelinessScreen : Screen("str_liveliness_screen/{isCheckInFlow}") {
         fun createRoute(isCheckInFlow: Boolean): String {
             return "str_liveliness_screen/$isCheckInFlow"
