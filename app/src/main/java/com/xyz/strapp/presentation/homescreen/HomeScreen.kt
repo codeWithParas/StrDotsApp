@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
@@ -55,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.xyz.strapp.R
+import com.xyz.strapp.presentation.logs.LogsScreen
 import com.xyz.strapp.presentation.profile.ProfileScreen
 import com.xyz.strapp.presentation.userlogin.LoginViewModel
 import com.xyz.strapp.ui.theme.StrAppTheme
@@ -85,6 +87,7 @@ fun HomeScreen(
     val bottomNavItems = listOf(
         BottomNavItem("Home", Icons.Filled.Home, "Home Screen"),
         BottomNavItem("Dashboard", Icons.Filled.Dashboard, "Dashboard Screen"),
+        BottomNavItem("Logs", Icons.Filled.History, "Logs Screen"),
         BottomNavItem("Profile", Icons.Filled.AccountCircle, "Profile Screen")
     )
 
@@ -121,11 +124,12 @@ fun HomeScreen(
                         selected = selectedItemIndex == index,
                         onClick = {
                             selectedItemIndex = index
-                            when (index) {
-                                0 -> onNavigateToHome() // These could be used for actual NavController navigation
-                                1 -> onNavigateToFavorites()
-                                2 -> onNavigateToProfile()
-                            }
+                                when (index) {
+                                    0 -> onNavigateToHome() // These could be used for actual NavController navigation
+                                    1 -> onNavigateToFavorites()
+                                    2 -> {} // Logs tab handled in the when statement above
+                                    3 -> onNavigateToProfile()
+                                }
                             Log.d("HomeScreen", "Selected: ${item.title}")
                         },
                         label = { Text(item.title) },
@@ -140,7 +144,8 @@ fun HomeScreen(
             when (selectedItemIndex) {
                 0 -> HomeTabContent(onNavigateToFaceLiveness)
                 1 -> FavoritesTabContent()
-                2 -> ProfileTabContent(onLogout = { onLogout() }) // Pass ViewModel if needed
+                2 -> LogsTabContent()
+                3 -> ProfileTabContent(onLogout = { onLogout() }) // Pass ViewModel if needed
             }
         }
     }
@@ -306,6 +311,11 @@ fun WebViewScreen(
         }
     )
 }
+@Composable
+fun LogsTabContent() {
+    LogsScreen()
+}
+
 @Composable
 fun ProfileTabContent(onLogout: () -> Unit) {
     ProfileScreen( onLogout = {onLogout()})
