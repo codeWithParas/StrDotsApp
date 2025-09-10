@@ -1,6 +1,5 @@
 package com.xyz.strapp.presentation.userlogin
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.xyz.strapp.domain.model.LoginRequest
@@ -28,8 +27,8 @@ class LoginViewModel @Inject constructor(
     // Removed ApiService direct injection, repository should use it
 ) : ViewModel() {
 
-    private val _email = MutableStateFlow("")
-    val email: StateFlow<String> = _email.asStateFlow()
+    private val _phone = MutableStateFlow("")
+    val phone: StateFlow<String> = _phone.asStateFlow()
 
     private val _password = MutableStateFlow("")
     val password: StateFlow<String> = _password.asStateFlow()
@@ -37,9 +36,9 @@ class LoginViewModel @Inject constructor(
     private val _loginUiState = MutableStateFlow<LoginUiState>(LoginUiState.Idle)
     val loginUiState: StateFlow<LoginUiState> = _loginUiState.asStateFlow()
 
-    // Function to be called from the UI when email input changes
-    fun onEmailChange(newEmail: String) {
-        _email.update { newEmail }
+    // Function to be called from the UI when phone input changes
+    fun onPhoneChange(newPhone: String) {
+        _phone.update { newPhone }
     }
 
     // Function to be called from the UI when password input changes
@@ -50,16 +49,16 @@ class LoginViewModel @Inject constructor(
     // Function to be called from the UI when the login button is clicked
     fun onLoginClicked() {
         // Basic validation (can be more sophisticated)
-        if (_email.value.isBlank() || _password.value.isBlank()) {
-            _loginUiState.value = LoginUiState.Error("Email and password cannot be empty.")
+        if (_phone.value.isBlank() || _password.value.isBlank()) {
+            _loginUiState.value = LoginUiState.Error("Phone number and password cannot be empty.")
             return
         }
-        // Could add email format validation here too
+        // Could add phone format validation here too
 
         _loginUiState.value = LoginUiState.Loading // Set state to Loading
 
         viewModelScope.launch {
-            val request = LoginRequest(email = _email.value.trim(), password = _password.value)
+            val request = LoginRequest(phone = _phone.value.trim(), password = _password.value)
             val result = loginRepository.loginUserRemote(request)
 
             result.fold(

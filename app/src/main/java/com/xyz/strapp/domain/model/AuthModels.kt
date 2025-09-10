@@ -6,8 +6,8 @@ import com.google.gson.annotations.SerializedName
  * Data class for the login request body.
  */
 data class LoginRequest(
-    @SerializedName("email") // Ensure this matches your API's expected field name for email
-    val email: String,
+    @SerializedName("phoneNumber") // Ensure this matches your API's expected field name for email
+    val phone: String,
 
     @SerializedName("password") // Ensure this matches your API's expected field name for password
     val password: String
