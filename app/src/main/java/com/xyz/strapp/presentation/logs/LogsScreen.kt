@@ -552,15 +552,17 @@ fun PendingUploadItem(upload: FaceImageEntity) {
 }
 
 // Helper function to format timestamp
-private fun formatTimestamp(timestamp: Long): String {
-    val date = Date(timestamp)
+private fun formatTimestamp(timestamp: String): String {
+    val timestampLong = timestamp.toLongOrNull() ?: System.currentTimeMillis()
+    val date = Date(timestampLong)
     val format = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
     return format.format(date)
 }
 
 // Helper function to format time
-private fun formatTime(timestamp: Long): String {
-    val date = Date(timestamp)
+private fun formatTime(timestamp: String): String {
+    val timestampLong = timestamp.toLongOrNull() ?: System.currentTimeMillis()
+    val date = Date(timestampLong)
     val format = SimpleDateFormat("HH:mm", Locale.getDefault())
     return format.format(date)
 }
@@ -613,7 +615,7 @@ fun PendingUploadItemPreview() {
             upload = FaceImageEntity(
                 id = 1,
                 imageData = ByteArray(1024 * 50), // 50KB mock data
-                timestamp = System.currentTimeMillis(),
+                timestamp = System.currentTimeMillis().toString(),
                 isUploaded = false
             )
         )
