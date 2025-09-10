@@ -7,6 +7,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
+import com.xyz.strapp.data.dao.AttendanceLogDao
 import com.xyz.strapp.data.dao.FaceImageDao
 import com.xyz.strapp.data.dao.LoginDao
 import com.xyz.strapp.data.dao.ProfileDao
@@ -152,7 +153,14 @@ object AppModule {
         return appDatabase.faceImageDao()
     }
     
-    // Temporarily removed AttendanceLogDao provider
+    /**
+     * Provides the DAO for attendance log operations.
+     */
+    @Singleton
+    @Provides
+    fun provideAttendanceLogDao(appDatabase: AppDatabase): AttendanceLogDao {
+        return appDatabase.attendanceLogDao()
+    }
 
     /**
      * Provides the repository for face liveness operations.
@@ -177,9 +185,10 @@ object AppModule {
     @Provides
     fun provideAttendanceLogsRepository(
         apiService: ApiService,
-        networkUtils: NetworkUtils
+        networkUtils: NetworkUtils,
+        attendanceLogDao: AttendanceLogDao
     ): AttendanceLogsRepository {
-        return AttendanceLogsRepository(apiService, networkUtils)
+        return AttendanceLogsRepository(apiService, networkUtils, attendanceLogDao)
     }
 
     @Provides
