@@ -2,7 +2,6 @@ package com.xyz.strapp.presentation.userlogin
 
 import android.util.Log
 import android.util.Patterns
-import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,12 +11,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
@@ -26,7 +24,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -47,7 +44,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -71,13 +67,13 @@ fun LoginScreen(
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    val email by loginViewModel.email.collectAsState()
+    val phoneNumber by loginViewModel.phone.collectAsState()
     val password by loginViewModel.password.collectAsState()
     val loginUiState by loginViewModel.loginUiState.collectAsState()
 
     var passwordVisible by remember { mutableStateOf(false) }
-    val isEmailValid = Patterns.EMAIL_ADDRESS.matcher(email).matches()
-    val isFormValid = isEmailValid && password.isNotEmpty() && loginUiState !is LoginUiState.Loading
+    val isPhoneValid = Patterns.PHONE.matcher(phoneNumber).matches()
+    val isFormValid = isPhoneValid && password.isNotEmpty() && loginUiState !is LoginUiState.Loading
 
             // Handle UI state changes, especially for errors and success
     LaunchedEffect(loginUiState) {
@@ -139,17 +135,18 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 TextField(
-                    value = email,
-                    onValueChange = { loginViewModel.onEmailChange(it)  },
-                    label = { Text("Email") },
+
+                    value = phoneNumber,
+                    onValueChange = { loginViewModel.onPhoneChange(it)  },
+                    label = { Text("Phone") },
                     singleLine = true,
                     shape = RoundedCornerShape(10.dp),
-                    isError = email.isNotEmpty() && !isEmailValid,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    isError = phoneNumber.isNotEmpty() && !isPhoneValid,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     leadingIcon = {
                         Icon(
-                            imageVector = Icons.Default.Email,
-                            contentDescription = "Email Icon"
+                            imageVector = Icons.Default.Phone,
+                            contentDescription = "Phone Icon"
                         )
                     },
                     enabled = loginUiState !is LoginUiState.Loading, // Disable when loading

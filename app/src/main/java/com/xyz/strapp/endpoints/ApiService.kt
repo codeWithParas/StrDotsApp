@@ -26,7 +26,7 @@ interface ApiService {
      * @param loginRequest The login credentials (e.g., email and password).
      * @return A Retrofit Response wrapping a LoginResponse.
      */
-    @POST("api/Auth/Login") // IMPORTANT: Replace with your actual login endpoint
+    @POST("api/Auth/LoginPhone") // IMPORTANT: Replace with your actual login endpoint
     suspend fun login(@Body loginRequest: LoginRequest): Response<LoginResponse>
 
     @GET("api/AttendanceRegister/GetUserDetails") // IMPORTANT: Replace with your actual login endpoint

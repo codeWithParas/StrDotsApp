@@ -49,7 +49,7 @@ class LoginRepository @Inject constructor(
                             // Save token using DataStore (suspend function)
 
                             val currentTime = System.currentTimeMillis()
-                            val expiryTime = currentTime + (24 * 60 * 60 * 1000)
+                            val expiryTime = currentTime + (7 * 24 * 60 * 60 * 1000)
                             saveAuthToken(token,expiryTime)
 
                             Log.d("LoginRepository", "Auth token saved via DataStore.")
