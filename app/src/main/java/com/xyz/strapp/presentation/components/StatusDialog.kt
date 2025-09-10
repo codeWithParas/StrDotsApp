@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 /**
  * A reusable Jetpack Compose dialog to display a success message.
@@ -75,8 +76,10 @@ fun SuccessMessageDialog(
                     }
                     Text(
                         text = message,
-                        style = MaterialTheme.typography.bodyLarge,
-                        textAlign = TextAlign.Center
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 28.sp,
+                        fontSize = 24.sp
                     )
                 }
             },

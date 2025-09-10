@@ -145,6 +145,7 @@ fun LivelinessScreen(
                 if (isTimerVisible && countdownValue > 0) {
                     val countMsg = when(countdownValue){
                         5, 4 -> "Position your face in the guided frame."
+                        3, 2 -> "Position your face in the guided frame."
                         else -> "Please try and remain still."
                     }
                     CountdownOverlayTopMsg(
@@ -226,12 +227,12 @@ fun CountdownOverlayTopMsg(modifier: Modifier = Modifier, statusText: String) {
 fun CountdownOverlay(countdownValue: Int, modifier: Modifier = Modifier, statusText: String) {
     Box(
         modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.BottomCenter
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = countdownValue.toString(),
-                fontSize = 120.sp,
+                fontSize = 60.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White.copy(alpha = 0.8f),
                 modifier = Modifier
@@ -241,7 +242,7 @@ fun CountdownOverlay(countdownValue: Int, modifier: Modifier = Modifier, statusT
             Spacer(modifier = Modifier.height(16.dp))
             Text(text = statusText, color = Color.White, style = MaterialTheme.typography.bodySmall)
         }
-
+        Spacer(modifier = Modifier.height(26.dp))
     }
 }
 

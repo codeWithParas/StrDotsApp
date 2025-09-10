@@ -78,7 +78,7 @@ class LivenessViewModel @Inject constructor(
 
     companion object {
         private const val TAG = "LivenessViewModel"
-        private const val COUNTDOWN_SECONDS = 5
+        private const val COUNTDOWN_SECONDS = 3
         private const val UPLOAD_WORK_TAG = "ImageUploadWork"
     }
 
@@ -222,45 +222,29 @@ class LivenessViewModel @Inject constructor(
 
                     if(apiMessage.contains("Success")) {
                         val message = if(isCheckInFlow) {
-                            "Person Checked-In Successfully!"
+                            "Person Checked-In Successfully!.\nRecord saved locally."
                         } else {
-                            "Person Checked-Out Successfully!"
+                            "Person Checked-Out Successfully!.\nRecord saved locally."
                         }
-                        /*globalFeedbackViewModel.showGlobalSuccess(
-                            message = message,
-                            title = if (isCheckInFlow) "Check-In Status" else "Check-Out Status"
-                        )*/
                         _uiState.value = LivenessScreenUiState.CaptureSuccess(message)
                     } else {
                         // Show error dialog
                         val message = if(isCheckInFlow) {
-                            "Checked-In Failed!"
+                            "Unable to Checked-In.\nRecord saved locally."
                         } else {
-                            "Checked-Out Failed!"
+                            "Unable to Checked-Out,\nRecord saved locally."
                         }
-                        /*globalFeedbackViewModel.showGlobalSuccess(
-                            message = message,
-                            title = if (isCheckInFlow) "Check-In Status" else "Check-Out Status"
-                        )*/
                         _uiState.value = LivenessScreenUiState.CaptureSuccess(message)
                     }
                 } else {
                     _uiState.value =
                         LivenessScreenUiState.CaptureError("Failed to save image locally.")
                     Log.e(TAG, "###@@@ Failed to save image to repository (returned null ID).")
-                    /*globalFeedbackViewModel.showGlobalSuccess(
-                        message = "Failed to save image locally.",
-                        title = if (isCheckInFlow) "Check-In Status" else "Check-Out Status"
-                    )*/
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "###@@@ Error saving image to repository", e)
                 _uiState.value =
                     LivenessScreenUiState.CaptureError("###@@@ Failed to save image: ${e.message}")
-                /*globalFeedbackViewModel.showGlobalSuccess(
-                    message = "Failed to save image locally.",
-                    title = if (isCheckInFlow) "Check-In Status" else "Check-Out Status"
-                )*/
             }
             resetCaptureState()
         }
