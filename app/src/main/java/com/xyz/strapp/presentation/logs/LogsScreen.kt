@@ -308,7 +308,7 @@ fun ErrorState(message: String) {
 @Composable
 fun LogsScreenSuccessPreview() {
     StrAppTheme {
-        SuccessState(logs = LogsPreviewData.mockLogs)
+        //SuccessState(logs = LogsPreviewData.mockLogs)
     }
 }
 
@@ -340,6 +340,6 @@ fun LogsScreenErrorPreview() {
 @Composable
 fun AttendanceLogItemPreview() {
     StrAppTheme {
-        AttendanceLogItem(log = LogsPreviewData.mockLogs.first())
+        //AttendanceLogItem(log = LogsPreviewData.mockLogs.first())
     }
 }

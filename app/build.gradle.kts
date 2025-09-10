@@ -35,6 +35,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        // Enable core library desugaring
+        isCoreLibraryDesugaringEnabled = true
     }
     kotlinOptions {
         jvmTarget = "11"
@@ -69,6 +71,8 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+
     implementation("androidx.compose.material:material-icons-extended")
 
     // Jetpack DataStore (Preferences)
@@ -80,6 +84,10 @@ dependencies {
     implementation(libs.converter.gson)
     implementation("com.squareup.okhttp3:okhttp:4.10.0") // Or latest
     implementation("com.squareup.okhttp3:logging-interceptor:4.10.0")
+
+    // Location Services
+    implementation(libs.play.services.location)
+    implementation(libs.kotlinx.coroutines.play.services)
 
     // Room Dependency -- Start
     implementation(libs.androidx.room.runtime)
