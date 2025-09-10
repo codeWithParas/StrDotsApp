@@ -9,7 +9,15 @@ import com.xyz.strapp.domain.model.entity.FaceImageEntity
 import com.xyz.strapp.domain.model.entity.LoginEntity
 import com.xyz.strapp.domain.model.entity.ProfileEntity
 
-@Database(entities = [LoginEntity::class, ProfileEntity::class, FaceImageEntity::class], version = 1, exportSchema = false)
+@Database(
+    entities = [
+        LoginEntity::class, 
+        ProfileEntity::class, 
+        FaceImageEntity::class
+    ], 
+    version = 1, 
+    exportSchema = false
+)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun loginDao(): LoginDao
     abstract fun profileDao(): ProfileDao

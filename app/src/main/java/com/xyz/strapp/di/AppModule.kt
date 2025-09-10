@@ -16,6 +16,7 @@ import com.xyz.strapp.domain.model.auth.MyTokenProvider
 import com.xyz.strapp.domain.repository.AttendanceLogsRepository
 import com.xyz.strapp.domain.repository.FaceLivenessRepository
 import com.xyz.strapp.endpoints.ApiService
+import com.xyz.strapp.utils.NetworkUtils
 import com.xyz.strapp.utils.Utils.DATABASE_NAME
 import dagger.Module
 import dagger.Provides
@@ -109,7 +110,9 @@ object AppModule {
             context,
             AppDatabase::class.java,
             DATABASE_NAME
-        ).build()
+        )
+        .fallbackToDestructiveMigration() // For simplicity, recreate database if schema changes
+        .build()
     }
 
     @Singleton
@@ -148,6 +151,8 @@ object AppModule {
     fun provideFaceImageDao(appDatabase: AppDatabase): FaceImageDao { // Use the fully qualified name or import
         return appDatabase.faceImageDao()
     }
+    
+    // Temporarily removed AttendanceLogDao provider
 
     /**
      * Provides the repository for face liveness operations.
@@ -171,15 +176,25 @@ object AppModule {
     @Singleton
     @Provides
     fun provideAttendanceLogsRepository(
-        apiService: ApiService
+        apiService: ApiService,
+        networkUtils: NetworkUtils
     ): AttendanceLogsRepository {
-        return AttendanceLogsRepository(apiService)
+        return AttendanceLogsRepository(apiService, networkUtils)
     }
 
     @Provides
     @Singleton
     fun provideFusedLocationProviderClient(@ApplicationContext context: Context): FusedLocationProviderClient {
         return LocationServices.getFusedLocationProviderClient(context)
+    }
+    
+    /**
+     * Provides the NetworkUtils for checking network connectivity
+     */
+    @Provides
+    @Singleton
+    fun provideNetworkUtils(@ApplicationContext context: Context): NetworkUtils {
+        return NetworkUtils(context)
     }
 
     /*@Provides
