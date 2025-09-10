@@ -9,7 +9,7 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.xyz.strapp.data.dao.LoginDao
-import com.xyz.strapp.domain.model.LoginEntity
+import com.xyz.strapp.domain.model.entity.LoginEntity
 import com.xyz.strapp.domain.model.LoginRequest
 import com.xyz.strapp.domain.model.LoginResponse
 import com.xyz.strapp.endpoints.ApiService

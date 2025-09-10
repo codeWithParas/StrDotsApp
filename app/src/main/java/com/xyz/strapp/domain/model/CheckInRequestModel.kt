@@ -17,3 +17,4 @@ data class UploadImageRequest(
     @SerializedName("Image")
     val image: String
 )
+

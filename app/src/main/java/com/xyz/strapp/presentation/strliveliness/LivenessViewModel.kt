@@ -52,6 +52,7 @@ class LivenessViewModel @Inject constructor(
     private lateinit var cameraProviderFuture: ListenableFuture<ProcessCameraProvider>
     private lateinit var cameraExecutor: ExecutorService
     private lateinit var faceAnalyzer: FaceLivenessAnalyzer
+    private var isCheckInFlow: Boolean = true
 
     private val _isCameraReady = MutableStateFlow(false)
     val isCameraReady: StateFlow<Boolean> = _isCameraReady.asStateFlow()
@@ -89,7 +90,13 @@ class LivenessViewModel @Inject constructor(
         Log.d(TAG, "Camera permission granted by user.")
     }
 
-    fun startCamera(context: Context,lifecycleOwner: LifecycleOwner, surfaceProvider: Preview.SurfaceProvider) {
+    fun startCamera(
+        context: Context,
+        isCheckInFlow: Boolean,
+        lifecycleOwner: LifecycleOwner,
+        surfaceProvider: Preview.SurfaceProvider
+    ) {
+        this.isCheckInFlow = isCheckInFlow
         cameraProviderFuture = ProcessCameraProvider.getInstance(application)
         cameraExecutor = Executors.newSingleThreadExecutor()
 
@@ -98,9 +105,13 @@ class LivenessViewModel @Inject constructor(
             onLivenessResults = { results ->
                 _livenessResults.value = results
                 if (countdownJob?.isActive == true && lastTrackedFaceIdForCountdown != null) {
-                    val trackedFaceResult = results.entries.find { it.key.trackingId == lastTrackedFaceIdForCountdown }
+                    val trackedFaceResult =
+                        results.entries.find { it.key.trackingId == lastTrackedFaceIdForCountdown }
                     if (trackedFaceResult == null || !trackedFaceResult.value.isLive) {
-                        Log.d(TAG, "###@@@ Face for countdown lost or became spoof. Cancelling timer.")
+                        Log.d(
+                            TAG,
+                            "###@@@ Face for countdown lost or became spoof. Cancelling timer."
+                        )
                         viewModelScope.launch {
                             //delay(3000)
                             cancelCountdown()
@@ -113,13 +124,17 @@ class LivenessViewModel @Inject constructor(
                     Log.d(TAG, "###@@@ Live face detected, starting countdown.")
                     capturedImageForProcessing = faceBitmap
                     // Check if face entry already made for same face tracking id
-                    val faceEntry = _livenessResults.value.entries.firstOrNull { it.value.isLive && it.value.faceBitmap == faceBitmap && it.key.trackingId == lastTrackedFaceIdForCountdown }
+                    val faceEntry =
+                        _livenessResults.value.entries.firstOrNull { it.value.isLive && it.value.faceBitmap == faceBitmap && it.key.trackingId == lastTrackedFaceIdForCountdown }
                     //lastTrackedFaceIdForCountdown = faceEntry?.key?.trackingId
                     Log.d(TAG, "###@@@ Scanned Tracking Id -- ${faceEntry?.key?.trackingId}")
-                    if(faceEntry == null) {
+                    if (faceEntry == null) {
                         Log.d(TAG, "###@@@ Countdown Started.")
                         lastTrackedFaceIdForCountdown = results.entries.first().key.trackingId
-                        Log.d(TAG, "###@@@ LastTrackedFaceIdForCountdown -- $lastTrackedFaceIdForCountdown")
+                        Log.d(
+                            TAG,
+                            "###@@@ LastTrackedFaceIdForCountdown -- $lastTrackedFaceIdForCountdown"
+                        )
                         _livenessResults.value = results
                         startCountdown(context)
                     }
@@ -127,7 +142,8 @@ class LivenessViewModel @Inject constructor(
             },
             onError = { exception ->
                 Log.e(TAG, "###@@@ Liveness Analysis Error", exception)
-                _uiState.value = LivenessScreenUiState.CaptureError("Analysis Error: ${exception.message}")
+                _uiState.value =
+                    LivenessScreenUiState.CaptureError("Analysis Error: ${exception.message}")
                 cancelCountdown()
             }
         )
@@ -176,10 +192,15 @@ class LivenessViewModel @Inject constructor(
             return
         }
 
-        val finalCheckFaceResult = _livenessResults.value.entries.find { it.key.trackingId == lastTrackedFaceIdForCountdown }
+        val finalCheckFaceResult =
+            _livenessResults.value.entries.find { it.key.trackingId == lastTrackedFaceIdForCountdown }
         if (finalCheckFaceResult == null || !finalCheckFaceResult.value.isLive) {
-            Log.w(TAG, "###@@@ Face for capture no longer live or available at the moment of capture.")
-            _uiState.value = LivenessScreenUiState.CaptureError("Face lost before capture completed.")
+            Log.w(
+                TAG,
+                "###@@@ Face for capture no longer live or available at the moment of capture."
+            )
+            _uiState.value =
+                LivenessScreenUiState.CaptureError("Face lost before capture completed.")
             resetCaptureState()
             return
         }
@@ -191,17 +212,28 @@ class LivenessViewModel @Inject constructor(
                 // Changed to use the correct repository method name
                 val imageId = faceLivenessRepository.saveFaceImage(bitmapToSave)
                 if (imageId?.first != null) {
-                    _uiState.value = LivenessScreenUiState.CaptureSuccess("Attendance Marked Successfully!")
-                    Log.d(TAG, "###@@@ Image saved successfully with ID: $imageId. Start Enqueuing upload worker.")
+                    _uiState.value =
+                        LivenessScreenUiState.CaptureSuccess("Attendance Marked Successfully!")
+                    Log.d(
+                        TAG,
+                        "###@@@ Image saved successfully with ID: $imageId. Start Enqueuing upload worker."
+                    )
                     //enqueueImageUploadWorker()
-                    faceLivenessRepository.startCheckIn(context,imageId.first, imageId.second)
+                    if(isCheckInFlow) {
+                        faceLivenessRepository.startCheckIn(context, imageId.first, imageId.second)
+                    } else {
+                        faceLivenessRepository.startCheckOut(context, imageId.first, imageId.second)
+                    }
+
                 } else {
-                    _uiState.value = LivenessScreenUiState.CaptureError("Failed to save image locally.")
+                    _uiState.value =
+                        LivenessScreenUiState.CaptureError("Failed to save image locally.")
                     Log.e(TAG, "###@@@ Failed to save image to repository (returned null ID).")
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "###@@@ Error saving image to repository", e)
-                _uiState.value = LivenessScreenUiState.CaptureError("###@@@ Failed to save image: ${e.message}")
+                _uiState.value =
+                    LivenessScreenUiState.CaptureError("###@@@ Failed to save image: ${e.message}")
             }
             resetCaptureState()
         }
@@ -235,9 +267,9 @@ class LivenessViewModel @Inject constructor(
         capturedImageForProcessing = null
         lastTrackedFaceIdForCountdown = null
         viewModelScope.launch {
-            delay(3000) 
+            delay(3000)
             if (_uiState.value is LivenessScreenUiState.CaptureSuccess || _uiState.value is LivenessScreenUiState.CaptureError) {
-                 _uiState.value = LivenessScreenUiState.Detecting
+                _uiState.value = LivenessScreenUiState.Detecting
             }
         }
     }
@@ -272,7 +304,8 @@ class LivenessViewModel @Inject constructor(
             Log.d(TAG, "CameraX Use cases bound to lifecycle")
         } catch (exc: Exception) {
             Log.e(TAG, "Use case binding failed", exc)
-            _uiState.value = LivenessScreenUiState.CaptureError("Camera setup failed: ${exc.message}")
+            _uiState.value =
+                LivenessScreenUiState.CaptureError("Camera setup failed: ${exc.message}")
         }
     }
 

@@ -23,6 +23,8 @@ class AuthStatusViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(true) // To show loading while checking
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    var isCheckInFlow = true
+
     init {
         checkLoginStatus()
     }

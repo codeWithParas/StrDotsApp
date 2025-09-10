@@ -1,4 +1,4 @@
-package com.xyz.strapp.domain.model
+package com.xyz.strapp.domain.model.entity
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
