@@ -1,0 +1,39 @@
+package com.xyz.strapp.presentation.components
+
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.lifecycle.ViewModel
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import javax.inject.Inject
+
+data class GlobalSuccessDialogContent(
+    val title: String? = "Success!",
+    val message: String = "",
+    val icon: ImageVector = Icons.Filled.CheckCircle,
+    // You can add more customization like custom dismiss actions if needed
+)
+
+@HiltViewModel
+class GlobalFeedbackViewModel @Inject constructor() : ViewModel() {
+
+    private val _showGlobalSuccessDialog = MutableStateFlow(false)
+    val showGlobalSuccessDialog: StateFlow<Boolean> = _showGlobalSuccessDialog.asStateFlow()
+
+    private val _globalSuccessDialogContent = MutableStateFlow(GlobalSuccessDialogContent())
+    val globalSuccessDialogContent: StateFlow<GlobalSuccessDialogContent> = _globalSuccessDialogContent.asStateFlow()
+
+    fun showGlobalSuccess(message: String, title: String? = "Success!", icon: ImageVector = Icons.Filled.CheckCircle) {
+        _globalSuccessDialogContent.value = GlobalSuccessDialogContent(title, message, icon)
+        _showGlobalSuccessDialog.value = true
+    }
+
+    fun dismissGlobalSuccessDialog() {
+        _showGlobalSuccessDialog.value = false
+        // Optionally reset content to defaults if desired after dismissal
+        // _globalSuccessDialogContent.value = GlobalSuccessDialogContent()
+    }
+}

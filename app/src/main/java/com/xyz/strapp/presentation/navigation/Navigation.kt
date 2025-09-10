@@ -1,9 +1,12 @@
 package com.xyz.strapp.presentation.navigation
 
 import android.util.Log
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.Color
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -11,16 +14,17 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.xyz.strapp.presentation.StartScreen
+import com.xyz.strapp.presentation.components.GlobalFeedbackViewModel
+import com.xyz.strapp.presentation.components.SuccessMessageDialog
 import com.xyz.strapp.presentation.homescreen.HomeScreen
-import com.xyz.strapp.presentation.logs.LogsScreen
 import com.xyz.strapp.presentation.strliveliness.LivelinessScreen
 import com.xyz.strapp.presentation.userlogin.LoginScreen
-import com.xyz.strapp.presentation.userlogin.LoginViewModel
 
 @Composable
 fun Navigation(
     navController: NavHostController,
-    authStatusViewModel: AuthStatusViewModel = hiltViewModel()
+    authStatusViewModel: AuthStatusViewModel = hiltViewModel(),
+    globalFeedbackViewModel: GlobalFeedbackViewModel = hiltViewModel(),
 ) {
 
     val isUserLoggedIn by authStatusViewModel.isUserLoggedIn.collectAsState()
@@ -63,8 +67,8 @@ fun Navigation(
         }
         composable(Screen.HomeScreen.route) {
             HomeScreen(
-                onNavigateToFaceLiveness = { isCheckInFlow ->
-                    navController.navigate(Screen.LivelinessScreen.createRoute(isCheckInFlow))
+                onNavigateToFaceLiveness = { isCheckInFlow, latitude, longitude ->
+                    navController.navigate(Screen.LivelinessScreen.createRoute(isCheckInFlow, latitude.toFloat(), longitude.toFloat()))
                 },
                 onLogout = {
                     navController.navigate(Screen.LoginScreen.route) {
@@ -76,15 +80,27 @@ fun Navigation(
         }
         composable(
             Screen.LivelinessScreen.route,
-            arguments = listOf(navArgument("isCheckInFlow") { type = NavType.BoolType })
+            arguments = listOf(
+                navArgument("isCheckInFlow") { type = NavType.BoolType },
+                navArgument("latitude") { type = NavType.FloatType },
+                navArgument("longitude") { type = NavType.FloatType }
+            )
         ) { backStackEntry ->
             val isCheckInFlow = backStackEntry.arguments?.getBoolean("isCheckInFlow") ?: false
+            val latitude = backStackEntry.arguments?.getFloat("latitude") ?: 0.0f
+            val longitude = backStackEntry.arguments?.getFloat("longitude") ?: 0.0f
+
             Log.d("Navigation", "###@@@ isCheckInFlow: $isCheckInFlow")
             LivelinessScreen(
-                onNavigateBack = {
+                onNavigateBack = { strMessage ->
+                    if(strMessage.isNotBlank()) {
+                        globalFeedbackViewModel.showGlobalSuccess(strMessage)
+                    }
                     navController.popBackStack(Screen.HomeScreen.route, false)
                 },
-                isCheckInFlow = isCheckInFlow
+                isCheckInFlow = isCheckInFlow,
+                latitude = latitude,
+                longitude = longitude
             )
         }
     }
@@ -98,9 +114,9 @@ sealed class Screen(val route: String) {
     object HomeScreen : Screen("home_screen")
     object ProfileScreen : Screen("profile_screen")
     object LogsScreen:Screen("logs_screen")
-    object LivelinessScreen : Screen("str_liveliness_screen/{isCheckInFlow}") {
-        fun createRoute(isCheckInFlow: Boolean): String {
-            return "str_liveliness_screen/$isCheckInFlow"
+    object LivelinessScreen : Screen("str_liveliness_screen/{isCheckInFlow}/{latitude}/{longitude}") {
+        fun createRoute(isCheckInFlow: Boolean, latitude: Float, longitude: Float): String {
+            return "str_liveliness_screen/$isCheckInFlow/$latitude/$longitude"
         }
     }
 }

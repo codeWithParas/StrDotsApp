@@ -3,7 +3,6 @@ package com.xyz.strapp.presentation.strliveliness
 
 import android.Manifest
 import android.util.Log
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.view.PreviewView
@@ -43,7 +42,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathOperation
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -53,9 +51,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.xyz.strapp.presentation.components.GlobalFeedbackViewModel
+import com.xyz.strapp.presentation.components.SuccessMessageDialog
 
 @Composable
-fun LivelinessScreen(viewModel: LivenessViewModel = hiltViewModel(), onNavigateBack: () -> Unit, isCheckInFlow: Boolean) {
+fun LivelinessScreen(
+    viewModel: LivenessViewModel = hiltViewModel(),
+    globalFeedbackViewModel: GlobalFeedbackViewModel = hiltViewModel(),
+    onNavigateBack: (String) -> Unit,
+    isCheckInFlow: Boolean,
+    latitude: Float,
+    longitude: Float
+) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val permissionState = rememberLauncherForActivityResult(
@@ -75,6 +82,7 @@ fun LivelinessScreen(viewModel: LivenessViewModel = hiltViewModel(), onNavigateB
         permissionState.launch(Manifest.permission.CAMERA)
     }
 
+    viewModel.setLocation(latitude, longitude)
     val isCameraReady by viewModel.isCameraReady.collectAsState()
     val livenessResults by viewModel.livenessResults.collectAsState() // For general face info
     val uiState by viewModel.uiState.collectAsState()
@@ -150,12 +158,21 @@ fun LivelinessScreen(viewModel: LivenessViewModel = hiltViewModel(), onNavigateB
                 ProcessingOverlay(message = "Processing capture...")
             }
             is LivenessScreenUiState.CaptureSuccess -> {
+                globalFeedbackViewModel.showGlobalSuccess(
+                    message = state.message,
+                    title = if (isCheckInFlow) "Check-In Status" else "Check-Out Status"
+                )
                 SuccessErrorOverlay(message = state.message, isError = false)
                 //Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
-                onNavigateBack()
+                onNavigateBack(state.message)
             }
             is LivenessScreenUiState.CaptureError -> {
+                globalFeedbackViewModel.showGlobalSuccess(
+                    message = state.message,
+                    title = if (isCheckInFlow) "Check-In Status" else "Check-Out Status"
+                )
                 SuccessErrorOverlay(message = state.message, isError = true)
+                onNavigateBack(state.message)
             }
             LivenessScreenUiState.Idle -> {
                 // Nothing specific for idle, or could be initial instructions
