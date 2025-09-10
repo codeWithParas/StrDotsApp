@@ -25,7 +25,11 @@ class AttendanceLogsRepository @Inject constructor(
      * @return A Flow emitting a Result containing a list of AttendanceLogModel
      */
     fun getAttendanceLogs(authToken: String): Flow<Result<List<AttendanceLogModel>>> = flow {
-        // If we have internet connection, fetch from API
+        // Always try to get cached data first as fallback
+        val cachedLogs = getCachedLogs()
+        Log.d(TAG, "Found ${cachedLogs.size} cached logs")
+        
+        // If we have internet connection, try to fetch from API
         if (networkUtils.isNetworkAvailable()) {
             try {
                 Log.d(TAG, "Internet available, fetching from API")
@@ -42,45 +46,42 @@ class AttendanceLogsRepository @Inject constructor(
                     } else {
                         Log.e(TAG, "API returned null body")
                         
-                        // Try to get cached data
-                        val cachedLogs = getCachedLogs()
+                        // Use cached data if available
                         if (cachedLogs.isNotEmpty()) {
-                            Log.d(TAG, "Using cached data, got ${cachedLogs.size} logs")
+                            Log.d(TAG, "API returned null, using cached data, got ${cachedLogs.size} logs")
                             emit(Result.success(cachedLogs))
                         } else {
-                            emit(Result.failure(Exception("No logs data received")))
+                            emit(Result.failure(Exception("No logs data received and no cached data available")))
                         }
                     }
                 } else {
                     Log.e(TAG, "API error: ${response.code()}")
                     
-                    // Try to get cached data
-                    val cachedLogs = getCachedLogs()
+                    // Use cached data if available
                     if (cachedLogs.isNotEmpty()) {
                         Log.d(TAG, "API failed, using cached data, got ${cachedLogs.size} logs")
                         emit(Result.success(cachedLogs))
                     } else {
-                        emit(Result.failure(Exception("Failed to fetch logs: ${response.code()}")))
+                        emit(Result.failure(Exception("Failed to fetch logs: ${response.code()} and no cached data available")))
                     }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Exception during API call", e)
+                Log.e(TAG, "Exception during API call: ${e.message}", e)
                 
-                // Try to get cached data
-                val cachedLogs = getCachedLogs()
+                // Use cached data if available
                 if (cachedLogs.isNotEmpty()) {
                     Log.d(TAG, "API exception, using cached data, got ${cachedLogs.size} logs")
                     emit(Result.success(cachedLogs))
                 } else {
-                    emit(Result.failure(e))
+                    Log.e(TAG, "No cached data available for fallback")
+                    emit(Result.failure(Exception("Network error: ${e.message} and no cached data available")))
                 }
             }
         } else {
-            // No internet - get cached data
-            Log.d(TAG, "No internet connection, fetching from local database")
-            val cachedLogs = getCachedLogs()
+            // No internet - use cached data immediately
+            Log.d(TAG, "No internet connection, using cached data")
             if (cachedLogs.isNotEmpty()) {
-                Log.d(TAG, "Using cached data, got ${cachedLogs.size} logs")
+                Log.d(TAG, "Found cached data, returning ${cachedLogs.size} logs")
                 emit(Result.success(cachedLogs))
             } else {
                 Log.d(TAG, "No cached data available")
@@ -117,13 +118,8 @@ class AttendanceLogsRepository @Inject constructor(
     private suspend fun getCachedLogs(): List<AttendanceLogModel> {
         return try {
             // Get all logs from database and convert to models
-            val entities = attendanceLogDao.getAllAttendanceLogs()
-            // Since getAllAttendanceLogs returns Flow, we need to collect it first
-            var result = listOf<AttendanceLogModel>()
-            entities.collect { entityList ->
-                result = entityList.map { it.toModel() }
-            }
-            result
+            val entities = attendanceLogDao.getAllAttendanceLogsSync()
+            entities.map { it.toModel() }
         } catch (e: Exception) {
             Log.e(TAG, "Error retrieving cached logs", e)
             emptyList()
@@ -149,6 +145,20 @@ class AttendanceLogsRepository @Inject constructor(
             Log.d(TAG, "Cleared all local attendance logs")
         } catch (e: Exception) {
             Log.e(TAG, "Error clearing local logs", e)
+        }
+    }
+    
+    /**
+     * Debug method to check how many logs are stored locally
+     */
+    suspend fun getLocalLogsCount(): Int {
+        return try {
+            val count = attendanceLogDao.getAttendanceLogsCount()
+            Log.d(TAG, "Local logs count: $count")
+            count
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting local logs count", e)
+            0
         }
     }
 }

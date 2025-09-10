@@ -37,6 +37,14 @@ interface AttendanceLogDao {
     fun getAllAttendanceLogs(): Flow<List<AttendanceLogEntity>>
 
     /**
+     * Retrieves all attendance logs ordered by date_time in descending order (newest first) as a suspend function.
+     *
+     * @return A list of AttendanceLogEntity objects.
+     */
+    @Query("SELECT * FROM attendance_logs ORDER BY date_time DESC")
+    suspend fun getAllAttendanceLogsSync(): List<AttendanceLogEntity>
+
+    /**
      * Retrieves attendance logs for a specific employee code.
      *
      * @param employeeCode The employee code to filter by.
