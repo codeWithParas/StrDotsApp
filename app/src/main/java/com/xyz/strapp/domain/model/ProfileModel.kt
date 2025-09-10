@@ -42,4 +42,26 @@ data class ProfileResponse(
     val faceImageRequried: Boolean
 )
 
+object Unspecified {
+    val PROFILE_RESPONSE = ProfileResponse(
+        name = "",
+        code = "",
+        gender = "",
+        employeeType = "",
+        circle = "",
+        division = "",
+        range = "",
+        section = "",
+        beat = "",
+        shift = "",
+        startTime = "",
+        endTime = "",
+        image = "",
+        email = "",
+        mobileNo = "",
+        agencyName = "",
+        faceImageRequried = false
+    )
+}
+
 

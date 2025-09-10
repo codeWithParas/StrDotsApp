@@ -55,6 +55,14 @@ class HomeViewModel @Inject constructor(
         private const val TAG = "HomeViewModel"
     }
 
+    private var latitude: Float = 0.0f
+    private var longitude: Float = 0.0f
+
+    fun setLocation(latitude: Float, longitude: Float) {
+        this.latitude = latitude
+        this.longitude = longitude
+    }
+
     fun fetchCurrentUserLocation() {
         // Permission check is crucial. UI should request, ViewModel can double-check.
         if (ContextCompat.checkSelfPermission(applicationContext, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&

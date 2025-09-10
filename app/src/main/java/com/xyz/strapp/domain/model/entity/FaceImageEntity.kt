@@ -4,22 +4,28 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "face_images") // Defines the table name
+@Entity(tableName = "face_images")
 data class FaceImageEntity(
     @PrimaryKey(autoGenerate = true)
-    val id: Long = 0, // Auto-generated primary key
+    val id: Long = 0,
 
     @ColumnInfo(
         name = "image_data",
         typeAffinity = ColumnInfo.BLOB
-    ) // Ensure BLOB type for byte array
+    )
     val imageData: ByteArray,
 
     @ColumnInfo(name = "timestamp")
-    val timestamp: Long,
+    val timestamp: String,
 
     @ColumnInfo(name = "is_uploaded")
-    var isUploaded: Boolean = false // Default to false, as image is initially not uploaded
+    var isUploaded: Boolean = false,
+
+    @ColumnInfo(name = "latitude")
+    var latitude: Float = 0.0f,
+
+    @ColumnInfo(name = "longitude")
+    var longitude: Float = 0.0f
 ) {
     // Auto-generated equals() and hashCode() by data class are usually sufficient
     // for Room's purposes, especially when relying on the primary key.

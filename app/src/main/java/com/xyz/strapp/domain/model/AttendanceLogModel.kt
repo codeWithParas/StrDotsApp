@@ -25,7 +25,7 @@ data class AttendanceLogModel(
     val message: String,
     
     @SerializedName("action")
-    val action: String
+    val action: String,
 ) {
     // Helper functions to format data for display
     fun getFormattedDate(): String {

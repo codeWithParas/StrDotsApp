@@ -49,6 +49,7 @@ import androidx.exifinterface.media.ExifInterface
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.xyz.strapp.R
 import com.xyz.strapp.domain.model.ProfileResponse
+import com.xyz.strapp.presentation.homescreen.HomeViewModel
 import kotlinx.coroutines.launch
 import java.io.ByteArrayInputStream
 

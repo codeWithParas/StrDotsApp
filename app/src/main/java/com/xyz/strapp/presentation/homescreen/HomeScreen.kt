@@ -133,12 +133,12 @@ fun HomeScreen(
                         selected = selectedItemIndex == index,
                         onClick = {
                             selectedItemIndex = index
-                                when (index) {
+                                /*when (index) {
                                     0 -> onNavigateToHome() // These could be used for actual NavController navigation
                                     1 -> onNavigateToFavorites()
                                     2 -> {} // Logs tab handled in the when statement above
                                     3 -> onNavigateToProfile()
-                                }
+                                }*/
                             Log.d("HomeScreen", "Selected: ${item.title}")
                         },
                         label = { Text(item.title) },
@@ -204,6 +204,7 @@ fun HomeTabContent(
                 Text("Fetching location...")
             }
             is LocationUiState.Success -> {
+                viewModel.setLocation(state.location.latitude.toFloat(), state.location.longitude.toFloat())
                 Text(modifier = Modifier.fillMaxWidth(), text = "You are at location : ", style = MaterialTheme.typography.headlineSmall)
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(state.location.address, style = MaterialTheme.typography.bodyMedium)
@@ -217,7 +218,7 @@ fun HomeTabContent(
 
         if (!locationPermissionsState.allPermissionsGranted) {
             LaunchedEffect(Unit) {
-                delay(2000)
+                delay(800)
                 locationPermissionsState.launchMultiplePermissionRequest()
             }
         } else if (locationState is LocationUiState.Error || locationState is LocationUiState.Idle) {
