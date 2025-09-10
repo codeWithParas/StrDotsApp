@@ -11,6 +11,7 @@ import com.xyz.strapp.data.dao.ProfileDao
 import com.xyz.strapp.data.database.AppDatabase
 import com.xyz.strapp.domain.model.auth.AuthInterceptor
 import com.xyz.strapp.domain.model.auth.MyTokenProvider
+import com.xyz.strapp.domain.repository.AttendanceLogsRepository
 import com.xyz.strapp.domain.repository.FaceLivenessRepository
 import com.xyz.strapp.endpoints.ApiService
 import com.xyz.strapp.utils.Utils.DATABASE_NAME
@@ -160,6 +161,17 @@ object AppModule {
         tokenProvider: MyTokenProvider
     ): FaceLivenessRepository { // Use the fully qualified name or import
         return FaceLivenessRepository(faceImageDao, apiService, tokenProvider.getToken())// , faceApiService )
+    }
+    
+    /**
+     * Provides the repository for attendance logs operations.
+     */
+    @Singleton
+    @Provides
+    fun provideAttendanceLogsRepository(
+        apiService: ApiService
+    ): AttendanceLogsRepository {
+        return AttendanceLogsRepository(apiService)
     }
 
     /*@Provides

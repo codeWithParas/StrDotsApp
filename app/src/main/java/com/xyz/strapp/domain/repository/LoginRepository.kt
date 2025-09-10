@@ -167,6 +167,14 @@ class LoginRepository @Inject constructor(
     private suspend fun getAuthTokenOnce(): String? {
         return getAuthTokenFlow().first() // Gets the first emitted value
     }
+    
+    /**
+     * Gets the current auth token, if available.
+     * @return The auth token as a string, or null if not available.
+     */
+    suspend fun getToken(): String? {
+        return getAuthTokenOnce()
+    }
 
     private suspend fun getTenantIdOnce(): String? {
         return getTenantIdFlow().first() // Gets the first emitted value
