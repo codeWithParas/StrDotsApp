@@ -20,6 +20,7 @@ import androidx.work.WorkManager
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.mlkit.vision.face.Face
 import com.xyz.strapp.domain.repository.FaceLivenessRepository
+import com.xyz.strapp.presentation.components.GlobalFeedbackViewModel
 import com.xyz.strapp.worker.ImageUploadWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -53,6 +54,8 @@ class LivenessViewModel @Inject constructor(
     private lateinit var cameraExecutor: ExecutorService
     private lateinit var faceAnalyzer: FaceLivenessAnalyzer
     private var isCheckInFlow: Boolean = true
+    private var latitude: Float = 0.0f
+    private var longitude: Float = 0.0f
 
     private val _isCameraReady = MutableStateFlow(false)
     val isCameraReady: StateFlow<Boolean> = _isCameraReady.asStateFlow()
@@ -83,6 +86,11 @@ class LivenessViewModel @Inject constructor(
         _uiState.value = LivenessScreenUiState.Detecting
         // Optionally, prune any previous work if it makes sense for your app logic
         // workManager.pruneWork()
+    }
+
+    fun setLocation(latitude: Float, longitude: Float) {
+        this.latitude = latitude
+        this.longitude = longitude
     }
 
     fun onPermissionGranted() {
@@ -187,7 +195,6 @@ class LivenessViewModel @Inject constructor(
     private fun processImageCapture(context: Context) {
         val bitmapToSave = capturedImageForProcessing
         if (bitmapToSave == null) {
-            Log.e(TAG, "###@@@ Bitmap for processing is null after countdown.")
             _uiState.value = LivenessScreenUiState.CaptureError("Error: No image to capture.")
             return
         }
@@ -195,12 +202,7 @@ class LivenessViewModel @Inject constructor(
         val finalCheckFaceResult =
             _livenessResults.value.entries.find { it.key.trackingId == lastTrackedFaceIdForCountdown }
         if (finalCheckFaceResult == null || !finalCheckFaceResult.value.isLive) {
-            Log.w(
-                TAG,
-                "###@@@ Face for capture no longer live or available at the moment of capture."
-            )
-            _uiState.value =
-                LivenessScreenUiState.CaptureError("Face lost before capture completed.")
+            _uiState.value = LivenessScreenUiState.CaptureError("Face lost before capture completed.")
             resetCaptureState()
             return
         }
@@ -208,32 +210,57 @@ class LivenessViewModel @Inject constructor(
         _uiState.value = LivenessScreenUiState.ProcessingCapture
         viewModelScope.launch {
             try {
-                Log.d(TAG, "###@@@ Attempting to save image to repository.")
-                // Changed to use the correct repository method name
+                //Attempting to save image to repository.
                 val imageId = faceLivenessRepository.saveFaceImage(bitmapToSave)
                 if (imageId?.first != null) {
-                    _uiState.value =
-                        LivenessScreenUiState.CaptureSuccess("Attendance Marked Successfully!")
-                    Log.d(
-                        TAG,
-                        "###@@@ Image saved successfully with ID: $imageId. Start Enqueuing upload worker."
-                    )
                     //enqueueImageUploadWorker()
-                    if(isCheckInFlow) {
-                        faceLivenessRepository.startCheckIn(context, imageId.first, imageId.second)
+                    val apiMessage = if(isCheckInFlow) {
+                        faceLivenessRepository.startCheckIn(context, imageId.first, imageId.second, latitude, longitude)
                     } else {
-                        faceLivenessRepository.startCheckOut(context, imageId.first, imageId.second)
+                        faceLivenessRepository.startCheckOut(context, imageId.first, imageId.second, latitude, longitude)
                     }
 
+                    if(apiMessage.contains("Success")) {
+                        val message = if(isCheckInFlow) {
+                            "Person Checked-In Successfully!"
+                        } else {
+                            "Person Checked-Out Successfully!"
+                        }
+                        /*globalFeedbackViewModel.showGlobalSuccess(
+                            message = message,
+                            title = if (isCheckInFlow) "Check-In Status" else "Check-Out Status"
+                        )*/
+                        _uiState.value = LivenessScreenUiState.CaptureSuccess(message)
+                    } else {
+                        // Show error dialog
+                        val message = if(isCheckInFlow) {
+                            "Checked-In Failed!"
+                        } else {
+                            "Checked-Out Failed!"
+                        }
+                        /*globalFeedbackViewModel.showGlobalSuccess(
+                            message = message,
+                            title = if (isCheckInFlow) "Check-In Status" else "Check-Out Status"
+                        )*/
+                        _uiState.value = LivenessScreenUiState.CaptureSuccess(message)
+                    }
                 } else {
                     _uiState.value =
                         LivenessScreenUiState.CaptureError("Failed to save image locally.")
                     Log.e(TAG, "###@@@ Failed to save image to repository (returned null ID).")
+                    /*globalFeedbackViewModel.showGlobalSuccess(
+                        message = "Failed to save image locally.",
+                        title = if (isCheckInFlow) "Check-In Status" else "Check-Out Status"
+                    )*/
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "###@@@ Error saving image to repository", e)
                 _uiState.value =
                     LivenessScreenUiState.CaptureError("###@@@ Failed to save image: ${e.message}")
+                /*globalFeedbackViewModel.showGlobalSuccess(
+                    message = "Failed to save image locally.",
+                    title = if (isCheckInFlow) "Check-In Status" else "Check-Out Status"
+                )*/
             }
             resetCaptureState()
         }
@@ -267,7 +294,7 @@ class LivenessViewModel @Inject constructor(
         capturedImageForProcessing = null
         lastTrackedFaceIdForCountdown = null
         viewModelScope.launch {
-            delay(3000)
+            delay(1000)
             if (_uiState.value is LivenessScreenUiState.CaptureSuccess || _uiState.value is LivenessScreenUiState.CaptureError) {
                 _uiState.value = LivenessScreenUiState.Detecting
             }
@@ -280,7 +307,7 @@ class LivenessViewModel @Inject constructor(
         surfaceProvider: Preview.SurfaceProvider
     ) {
         val preview = Preview.Builder().build().also {
-            it.setSurfaceProvider(surfaceProvider)
+            it.surfaceProvider = surfaceProvider
         }
         val imageAnalysis = ImageAnalysis.Builder()
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)

@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">STR App</string>
+    <string name="check_in_successful">Check-In Successful!</string>
+    <string name="check_in_failed">Check-In Failed!</string>
+    <string name="check_out_successful">Check-Out Successful!</string>
+    <string name="check_out_failed">Check-Out Failed!</string>
 </resources>

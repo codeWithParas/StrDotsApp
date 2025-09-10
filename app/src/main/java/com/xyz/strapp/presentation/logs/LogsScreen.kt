@@ -42,7 +42,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.xyz.strapp.domain.model.AttendanceLogModel
-import com.xyz.strapp.presentation.logs.LogsPreviewData
 import com.xyz.strapp.ui.theme.StrAppTheme
 
 @Composable
@@ -309,7 +308,7 @@ fun ErrorState(message: String) {
 @Composable
 fun LogsScreenSuccessPreview() {
     StrAppTheme {
-        SuccessState(logs = LogsPreviewData.mockLogs)
+        //SuccessState(logs = LogsPreviewData.mockLogs)
     }
 }
 
@@ -341,6 +340,6 @@ fun LogsScreenErrorPreview() {
 @Composable
 fun AttendanceLogItemPreview() {
     StrAppTheme {
-        AttendanceLogItem(log = LogsPreviewData.mockLogs.first())
+        //AttendanceLogItem(log = LogsPreviewData.mockLogs.first())
     }
 }

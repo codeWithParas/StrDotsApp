@@ -1,5 +1,6 @@
 package com.xyz.strapp.presentation.homescreen
 
+import android.Manifest
 import android.util.Log
 import android.view.ViewGroup
 import android.webkit.WebView
@@ -23,9 +24,11 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,6 +41,8 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -55,11 +60,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.xyz.strapp.R
 import com.xyz.strapp.presentation.logs.LogsScreen
 import com.xyz.strapp.presentation.profile.ProfileScreen
 import com.xyz.strapp.presentation.userlogin.LoginViewModel
 import com.xyz.strapp.ui.theme.StrAppTheme
+import kotlinx.coroutines.delay
 
 // Data class for Bottom Navigation items (already defined, ensure it's accessible)
 data class BottomNavItem(
@@ -68,11 +76,12 @@ data class BottomNavItem(
     val contentDescription: String,
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun HomeScreen(
+    viewModel: HomeViewModel = hiltViewModel(),
     loginViewModel: LoginViewModel = hiltViewModel(), // Kept for potential use in Profile tab
-    onNavigateToFaceLiveness: (Boolean) -> Unit = {},
+    onNavigateToFaceLiveness: (Boolean, Double, Double) -> Unit,
     onNavigateToHome: () -> Unit = {},
     onNavigateToFavorites: () -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
@@ -142,7 +151,7 @@ fun HomeScreen(
     ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding)) { // Apply innerPadding to the content root
             when (selectedItemIndex) {
-                0 -> HomeTabContent(onNavigateToFaceLiveness)
+                0 -> HomeTabContent(viewModel, onNavigateToFaceLiveness)
                 1 -> FavoritesTabContent()
                 2 -> LogsTabContent()
                 3 -> ProfileTabContent(onLogout = { onLogout() }) // Pass ViewModel if needed
@@ -151,15 +160,27 @@ fun HomeScreen(
     }
 }
 
-// Data class for Bottom Navigation items (already defined, ensure it's accessible)
-// data class BottomNavItem(
-//    val title: String,
-//    val icon: ImageVector,
-//    val contentDescription: String,
-// )
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun HomeTabContent(onNavigateToFaceLiveness: (Boolean) -> Unit) {
-    // Replace with your actual Home screen content
+fun HomeTabContent(
+    viewModel: HomeViewModel = hiltViewModel(),
+    onNavigateToFaceLiveness: (Boolean, Double, Double) -> Unit
+) {
+    val locationState by viewModel.locationState.collectAsState()
+    val locationPermissionsState = rememberMultiplePermissionsState(
+        permissions = listOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+    )
+    LaunchedEffect(locationPermissionsState.allPermissionsGranted) {
+        if (locationPermissionsState.allPermissionsGranted) {
+            Log.d("HomeScreen", "Location permissions are granted. Fetching location.")
+            viewModel.fetchCurrentUserLocation()
+        } else {
+            // Location Permissions not granted
+        }
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -171,7 +192,42 @@ fun HomeTabContent(onNavigateToFaceLiveness: (Boolean) -> Unit) {
         Spacer(modifier = Modifier.height(16.dp))
         Text("Note - Select Check-In button to mark your attendance, try and place your phone in a way to place your face withing the oval to detect the face.")
         Spacer(modifier = Modifier.height(30.dp))
-        // Example: Placeholder for a list of items
+
+        // Location UI
+        when (val state = locationState) {
+            is LocationUiState.Idle -> {
+                CircularProgressIndicator()
+                Text("Awaiting location permission...")
+            }
+            is LocationUiState.Fetching -> {
+                CircularProgressIndicator()
+                Text("Fetching location...")
+            }
+            is LocationUiState.Success -> {
+                Text(modifier = Modifier.fillMaxWidth(), text = "You are at location : ", style = MaterialTheme.typography.headlineSmall)
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(state.location.address, style = MaterialTheme.typography.bodyMedium)
+            }
+            is LocationUiState.Error -> {
+                Text("Location Error: ${state.message}")
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        if (!locationPermissionsState.allPermissionsGranted) {
+            LaunchedEffect(Unit) {
+                delay(2000)
+                locationPermissionsState.launchMultiplePermissionRequest()
+            }
+        } else if (locationState is LocationUiState.Error || locationState is LocationUiState.Idle) {
+            Button(onClick = { viewModel.fetchCurrentUserLocation() }) {
+                Text("Retry/Fetch Location")
+            }
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
         Column {
             Card(
                 modifier = Modifier
@@ -179,8 +235,12 @@ fun HomeTabContent(onNavigateToFaceLiveness: (Boolean) -> Unit) {
                     .padding(vertical = 4.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                 onClick = {
-                    onNavigateToFaceLiveness(true)
-                }
+                    when (val state = locationState) {
+                        is LocationUiState.Success -> onNavigateToFaceLiveness(true, state.location.latitude, state.location.longitude)
+                        else -> {}
+                    }
+                },
+                enabled = locationPermissionsState.allPermissionsGranted && locationState is LocationUiState.Success
             ) {
                 val image = painterResource(R.drawable.checkin)
                 Row(
@@ -188,7 +248,9 @@ fun HomeTabContent(onNavigateToFaceLiveness: (Boolean) -> Unit) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Image(
-                    modifier = Modifier.height(50.dp).width(50.dp),
+                    modifier = Modifier
+                        .height(50.dp)
+                        .width(50.dp),
                     painter = image,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
@@ -208,8 +270,12 @@ fun HomeTabContent(onNavigateToFaceLiveness: (Boolean) -> Unit) {
                     .padding(vertical = 4.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                 onClick = {
-                    onNavigateToFaceLiveness(false)
-                }
+                    when (val state = locationState) {
+                        is LocationUiState.Success -> onNavigateToFaceLiveness(false, state.location.latitude, state.location.longitude)
+                        else -> {}
+                    }
+                },
+                enabled = locationPermissionsState.allPermissionsGranted && locationState is LocationUiState.Success
             ) {
                 val image = painterResource(R.drawable.checkout)
                 Row(
@@ -217,7 +283,9 @@ fun HomeTabContent(onNavigateToFaceLiveness: (Boolean) -> Unit) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Image(
-                        modifier = Modifier.height(50.dp).width(50.dp),
+                        modifier = Modifier
+                            .height(50.dp)
+                            .width(50.dp),
 
                         painter = image,
                         contentDescription = null,
