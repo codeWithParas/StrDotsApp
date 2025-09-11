@@ -18,7 +18,8 @@ import javax.inject.Inject
 sealed interface LoginUiState {
     data object Idle : LoginUiState // Initial state
     data object Loading : LoginUiState // Login attempt in progress
-    data class Success(val loginResponse: LoginResponse) : LoginUiState // Login successful
+    data class Success(val loginResponse: LoginResponse) : LoginUiState // Login successful, navigate to home
+    data class FaceImageRequired(val loginResponse: LoginResponse) : LoginUiState // Login successful but face image upload required
     data class Error(val message: String) : LoginUiState // Login failed
 }
 
@@ -64,13 +65,24 @@ class LoginViewModel @Inject constructor(
 
             result.fold(
                 onSuccess = { response ->
-                    if(response.isSuccess)
-                    {
-                        _loginUiState.value = LoginUiState.Success(response)
-                    }else{
-                        _loginUiState.value = LoginUiState.Error("Invalid Credentials")
-                    }
+                    if(response.isSuccess) {
+                        // TODO: FOR TESTING - Always redirect to face upload screen
+                        // Remove this when testing is complete and use the actual API response
+                        _loginUiState.value = LoginUiState.FaceImageRequired(response)
 
+                        // Original logic (commented out for testing):
+                        // Check if face image is required
+                        // if (response.faceImageRequried == true) {
+                        //     _loginUiState.value = LoginUiState.FaceImageRequired(response)
+                        // } else {
+                        //     _loginUiState.value = LoginUiState.Success(response)
+                        // }
+                    } else {
+                        // Use error message from response or default message
+                        val errorMsg = response.errorMessage?.takeIf { it.isNotBlank() }
+                            ?: "Invalid Credentials"
+                        _loginUiState.value = LoginUiState.Error(errorMsg)
+                    }
                 },
                 onFailure = { exception ->
                     // Handle login failure

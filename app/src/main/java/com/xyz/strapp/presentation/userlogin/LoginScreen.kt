@@ -64,7 +64,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun LoginScreen(
     loginViewModel: LoginViewModel = hiltViewModel(),
-    onLoginSuccess: () -> Unit, // Callback for successful login & navigation
+    onLoginSuccess: () -> Unit, // Callback for successful login & navigation to home
+    onNavigateToFaceUpload: () -> Unit, // Callback for navigating to face upload screen
     onNavigateToRegister: () -> Unit // Callback for navigating to registration
 ) {
     val context = LocalContext.current
@@ -84,15 +85,23 @@ fun LoginScreen(
         when (val state = loginUiState) {
             is LoginUiState.Success -> {
                 Log.d("LoginScreen", "Login successful: ${state.loginResponse.userName}")
-                // Here you would typically save tokens, user data, etc.
-                // For now, we'll show a snackbar and then navigate.
                 scope.launch {
                     snackbarHostState.showSnackbar(
                         message = "Login Successful: ${state.loginResponse.userName}",
                         duration = androidx.compose.material3.SnackbarDuration.Short
                     )
                 }
-                onLoginSuccess() // Trigger navigation
+                onLoginSuccess() // Navigate to home screen
+            }
+            is LoginUiState.FaceImageRequired -> {
+                Log.d("LoginScreen", "Login successful but face image required: ${state.loginResponse.userName}")
+                scope.launch {
+                    snackbarHostState.showSnackbar(
+                        message = "Please upload your face image to complete setup",
+                        duration = androidx.compose.material3.SnackbarDuration.Short
+                    )
+                }
+                onNavigateToFaceUpload() // Navigate to face upload screen
             }
             is LoginUiState.Error -> {
                 scope.launch {
@@ -287,6 +296,7 @@ fun LoginScreenPreview() {
     StrAppTheme { // Ensure your theme is applied for previews
         LoginScreen(
             onLoginSuccess = { Log.d("Preview", "Login Success Clicked") },
+            onNavigateToFaceUpload = { Log.d("Preview", "Navigate to Face Upload Clicked") },
             onNavigateToRegister = { Log.d("Preview", "Navigate to Register Clicked") }
             // You might need to provide a mock ViewModel for more complex previews
         )

@@ -20,6 +20,7 @@ import com.xyz.strapp.presentation.LanguageScreen.LanguageScreen
 import com.xyz.strapp.presentation.StartScreen
 import com.xyz.strapp.presentation.components.GlobalFeedbackViewModel
 import com.xyz.strapp.presentation.components.SuccessMessageDialog
+import com.xyz.strapp.presentation.faceupload.FaceImageUploadScreen
 import com.xyz.strapp.presentation.homescreen.HomeScreen
 import com.xyz.strapp.presentation.strliveliness.LivelinessScreen
 import com.xyz.strapp.presentation.userlogin.LoginScreen
@@ -76,13 +77,23 @@ fun Navigation(
             })
         }
         composable(Screen.LoginScreen.route) {
-            LoginScreen(onLoginSuccess = {
-                navController.navigate(Screen.HomeScreen.route) {
-                    popUpTo(Screen.LoginScreen.route) {
-                        inclusive = true
+            LoginScreen(
+                onLoginSuccess = {
+                    navController.navigate(Screen.HomeScreen.route) {
+                        popUpTo(Screen.LoginScreen.route) {
+                            inclusive = true
+                        }
                     }
-                }
-            }, onNavigateToRegister = {})
+                },
+                onNavigateToFaceUpload = {
+                    navController.navigate(Screen.FaceImageUploadScreen.route) {
+                        popUpTo(Screen.LoginScreen.route) {
+                            inclusive = false // Keep login screen in back stack
+                        }
+                    }
+                },
+                onNavigateToRegister = {}
+            )
         }
         composable(Screen.HomeScreen.route) {
             HomeScreen(
@@ -122,6 +133,25 @@ fun Navigation(
                 longitude = longitude
             )
         }
+        composable(Screen.FaceImageUploadScreen.route) {
+            FaceImageUploadScreen(
+                onUploadSuccess = {
+                    navController.navigate(Screen.HomeScreen.route) {
+                        popUpTo(Screen.LoginScreen.route) {
+                            inclusive = true
+                        }
+                    }
+                },
+                onNavigateBack = {
+                    navController.navigate(Screen.HomeScreen.route) {
+                        popUpTo(Screen.HomeScreen.route) {
+                            inclusive = false
+                        }
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
     }
 
 }
@@ -134,6 +164,7 @@ sealed class Screen(val route: String) {
     object HomeScreen : Screen("home_screen")
     object ProfileScreen : Screen("profile_screen")
     object LogsScreen:Screen("logs_screen")
+    object FaceImageUploadScreen : Screen("face_image_upload_screen")
     object LivelinessScreen : Screen("str_liveliness_screen/{isCheckInFlow}/{latitude}/{longitude}") {
         fun createRoute(isCheckInFlow: Boolean, latitude: Float, longitude: Float): String {
             return "str_liveliness_screen/$isCheckInFlow/$latitude/$longitude"

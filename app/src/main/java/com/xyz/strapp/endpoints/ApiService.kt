@@ -4,7 +4,6 @@ import com.xyz.strapp.domain.model.CheckInResponse
 import com.xyz.strapp.domain.model.AttendanceLogsResponse
 import com.xyz.strapp.domain.model.LoginRequest
 import com.xyz.strapp.domain.model.LoginResponse
-import com.xyz.strapp.domain.model.UploadImageRequest
 import com.xyz.strapp.domain.model.ProfileResponse
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -73,9 +72,22 @@ interface ApiService {
     ): Response<CheckInResponse>
 
 
+    @Multipart
     @POST("api/AttendanceRegister/UploadImage")
     suspend fun uploadImage(
-        @Body uploadData: UploadImageRequest
+        @Part imagePart: MultipartBody.Part
+    ): Response<String>
+
+    /**
+     * Uploads a face image during login/onboarding process
+     * @param imagePart The face image file
+     * @return A Retrofit Response wrapping an UploadResponse
+     */
+    @Multipart
+    @POST("api/Auth/UploadFaceImage")
+    suspend fun uploadFaceImage(
+        @Header("Authorization") authToken: String,
+        @Part imagePart: MultipartBody.Part
     ): Response<UploadResponse>
 
     // You can add other API calls here, for example:
