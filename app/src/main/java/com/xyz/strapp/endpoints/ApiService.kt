@@ -78,6 +78,18 @@ interface ApiService {
         @Body uploadData: UploadImageRequest
     ): Response<UploadResponse>
 
+    /**
+     * Uploads a face image during login/onboarding process
+     * @param imagePart The face image file
+     * @return A Retrofit Response wrapping an UploadResponse
+     */
+    @Multipart
+    @POST("api/Auth/UploadFaceImage")
+    suspend fun uploadFaceImage(
+        @Header("Authorization") authToken: String,
+        @Part imagePart: MultipartBody.Part
+    ): Response<UploadResponse>
+
     // You can add other API calls here, for example:
     // @GET("api/v1/user_status/{userId}")
     // suspend fun getUserStatus(@Path("userId") userId: String): Response<UserStatusResponse>

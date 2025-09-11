@@ -40,8 +40,8 @@ data class LoginResponse(
     @SerializedName("tenentId") // Example: if your API returns a user name
     val tenentId: String?,
 
-    @SerializedName("faceImageRequried") // Example: if your API returns a user name
-    val faceImageRequried: String?
+    @SerializedName("faceImageRequried") // Boolean flag to indicate if face image is required
+    val faceImageRequried: Boolean?
     // Add other fields your API might return (e.g., refresh_token, user_role, etc.)
 )
 
