@@ -143,7 +143,12 @@ fun Navigation(
                     }
                 },
                 onNavigateBack = {
-                    navController.popBackStack()
+                    navController.navigate(Screen.HomeScreen.route) {
+                        popUpTo(Screen.HomeScreen.route) {
+                            inclusive = false
+                        }
+                        launchSingleTop = true
+                    }
                 }
             )
         }
