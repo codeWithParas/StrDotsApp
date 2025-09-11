@@ -1,6 +1,7 @@
 package com.xyz.strapp.domain.repository
 
 import android.content.ContentValues
+import android.content.ContentValues.TAG
 import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
@@ -9,14 +10,20 @@ import android.provider.MediaStore
 import android.util.Log
 import com.xyz.strapp.R
 import com.xyz.strapp.data.dao.FaceImageDao
-import com.xyz.strapp.domain.model.CheckInRequest
+import com.xyz.strapp.domain.model.AttendanceLogModel
+import com.xyz.strapp.domain.model.CheckInResponse
 import com.xyz.strapp.domain.model.entity.FaceImageEntity
-import com.xyz.strapp.domain.model.UploadImageRequest
 import com.xyz.strapp.endpoints.ApiService
+import com.xyz.strapp.presentation.strliveliness.LivenessScreenUiState
 import com.xyz.strapp.utils.Constants
+import com.xyz.strapp.utils.NetworkUtils
 import com.xyz.strapp.utils.Utils.getCurrentDateTimeInIsoFormatTruncatedToSecond
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -29,7 +36,8 @@ import javax.inject.Singleton
 class FaceLivenessRepository @Inject constructor(
     private val faceImageDao: FaceImageDao,
     private val apiService: ApiService,
-    private val token: String?
+    private val token: String?,
+    private val networkUtils: NetworkUtils,
 ) {
 
     /**
@@ -40,10 +48,11 @@ class FaceLivenessRepository @Inject constructor(
      * @param timestamp The time the image was captured, defaults to current time.
      * @return The row ID of the newly inserted face image, or null on failure.
      */
-    suspend fun saveFaceImage(
+    suspend fun saveFaceImageToRoomDatabase(
         bitmap: Bitmap,
         latitude: Float,
-        longitude: Float
+        longitude: Float,
+        isCheckInFlow: Boolean
     ): Pair<Long, ByteArray>? {
         return withContext(Dispatchers.IO) { // Perform database and bitmap operations off the main thread
             try {
@@ -67,7 +76,8 @@ class FaceLivenessRepository @Inject constructor(
                     latitude = latitude,
                     longitude = longitude,
                     timestamp = formattedDateTimeTruncated,
-                    isUploaded = false // Initially, the image is not uploaded
+                    isUploaded = false, // Initially, the image is not uploaded
+                    isCheckIn = isCheckInFlow
                 )
 
                 val insertedId = faceImageDao.insertFaceImage(faceImageEntity)
@@ -116,7 +126,6 @@ class FaceLivenessRepository @Inject constructor(
     }
 
     /**
-     * TODO: Implement the actual server upload logic.
      * This function would:
      * 1. Get pending images using getPendingUploads().
      * 2. For each image:
@@ -125,75 +134,68 @@ class FaceLivenessRepository @Inject constructor(
      *    c. Handle errors, retries, etc.
      * This should ideally be managed by WorkManager for robust background execution.
      */
-    suspend fun uploadPendingImagesToServer() {
-        // Example structure:
-        val pendingImages = getPendingUploads()
-        if (pendingImages.isEmpty()) {
-            Log.d("FaceLivenessRepository", "No pending images to upload.")
-            return
-        }
-        Log.e(
-            "FaceLivenessRepository",
-            "###@@@ Pending upload image size : ${pendingImages.size}"
-        )
-
-        for (imageEntity in pendingImages) {
-            try {
-                val request = CheckInRequest(
-                    latitude = 28.575447f,
-                    longitude = 77.44539f,
-                    dateTime = "Mon 8 Sep 2025 12:00 PM"
-                )
-                // 1. Create RequestBody from ByteArray for the image
-                val imageRequestBody = imageEntity.imageData.toRequestBody(
-                    "image/jpeg".toMediaTypeOrNull(), // Or "image/png" depending on your image format
-                    0, // offset
-                    imageEntity.imageData.size // size
-                )
-                // 2. Create MultipartBody.Part from the RequestBody
-                // "file" is the part name expected by your server for the image file.
-                // "image.jpg" is the filename that will be sent to the server.
-                val imagePart = MultipartBody.Part.createFormData(
-                    "file", // This is the 'name' of the part (form field name for the file)
-                    "image_${imageEntity.id}.jpg", // This is the filename sent to the server
-                    imageRequestBody
-                )
-
-
-
-                // 3. Create RequestBody for other data (from CheckInRequest)
-                // You need to convert each field of your CheckInRequest to RequestBody
-                // Assuming CheckInRequest has latitude, longitude, dateTime
-                val latitudeRequestBody = 28.575447f.toString().toRequestBody("text/plain".toMediaTypeOrNull())
-                val longitudeRequestBody = 77.44539f.toString().toRequestBody("text/plain".toMediaTypeOrNull())
-                val dateTimeRequestBody = "Mon 8 Sep 2025 12:00 PM".toRequestBody("text/plain".toMediaTypeOrNull())
-
-                // 4. Make the API call
-                // Assuming your ApiService method is named 'uploadFaceImage' as defined above
-                val imageRequest = UploadImageRequest("")
-                val response = apiService.uploadImage(uploadData = imageRequest)
-                delay(2000)
-                if (response.isSuccessful) {
-                    markImageAsUploaded(imageEntity.id)
-                } else {
-                    Log.e(
-                        "FaceLivenessRepository",
-                        "Failed to upload image ${imageEntity.id}: ${response.message()}"
-                    )
+    fun uploadPendingLogsToServer(context: Context): Flow<Result<List<FaceImageEntity>>> =
+        channelFlow {
+            if (networkUtils.isNetworkAvailable()) {
+                try {
+                    val pendingImages = getPendingUploads()
+                    delay(200)
+                    for (imageEntity in pendingImages) {
+                        try {
+                            if(imageEntity.isCheckIn) {
+                                startCheckIn(
+                                    context,
+                                    imageEntity.id,
+                                    imageEntity.imageData,
+                                    imageEntity.latitude,
+                                    imageEntity.longitude
+                                )
+                            } else {
+                                startCheckOut(
+                                    context,
+                                    imageEntity.id,
+                                    imageEntity.imageData,
+                                    imageEntity.latitude,
+                                    imageEntity.longitude
+                                )
+                            }.collectLatest { result ->
+                                result.fold(
+                                    onSuccess = {
+                                        Log.e("ImageUploader", "Image Uploaded: ${imageEntity.id}")
+                                        //emit(Result.success(message))
+                                        // Fetch remaining uploads
+                                        val updatedPendingLogs = getPendingUploads()
+                                        send(Result.success(updatedPendingLogs))
+                                    },
+                                    onFailure = { error ->
+                                        // Show error dialog
+                                        Log.e("ImageUploader", "Image Uploaded Failed: ${imageEntity.id}")
+                                        if(pendingImages.last() == imageEntity) {
+                                            //emit(Result.success(pendingImages))
+                                            send(Result.success(pendingImages))
+                                        }
+                                    }
+                                )
+                            }
+                        } catch (e: Exception) {
+                            Log.e("ImageUploader", "Image Uploaded Failed: ${imageEntity.id} - ${e.message}")
+                            if(pendingImages.last() == imageEntity) {
+                                //emit(Result.success(pendingImages))
+                                send(Result.success(pendingImages))
+                            }
+                        }
+                        delay(200)
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Exception during log upload API call: ${e.message}", e)
+                    // Use cached data if available
+                    send(Result.failure(Exception("Network error: ${e.message} and no cached data available")))
                 }
-                Log.d("FaceLivenessRepository", "Simulating upload for image ID: ${imageEntity.id}")
-                // Simulate success for now, actual implementation needed
-                // markImageAsUploaded(imageEntity.id)
-
-            } catch (e: Exception) {
-                Log.e("FaceLivenessRepository", "Error uploading image ${imageEntity.id}", e)
+            } else {
+                // No internet - use cached data immediately
+                send(Result.failure(Exception("No internet connection and no cached data available")))
             }
         }
-        Log.d(
-            "FaceLivenessRepository",
-            "uploadPendingImagesToServer: Placeholder - implement actual upload logic."
-        )
-    }
 
     fun getImagesUri(): Uri {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -234,107 +236,113 @@ class FaceLivenessRepository @Inject constructor(
         }
     }
 
-    suspend fun startCheckIn(
+    fun startCheckIn(
         context: Context,
         imageId: Long,
         imageByteArray: ByteArray,
         latitude: Float,
         longitude: Float
-    ) : String {
-        var message = ""
-        try {
-            if (imageByteArray.isEmpty()) { return "Image doesn't exist. Capture again."}
-            val imageRequestBody = imageByteArray.toRequestBody(
-                "image/jpeg".toMediaTypeOrNull(), // Or "image/png" depending on your image format
-                0, // offset
-                imageByteArray.size // size
-            )
-            val imagePart = MultipartBody.Part.createFormData(
-                "Image", // Name "Image" to match curl command
-                "image_${imageId}.jpg", // This is the filename sent to the server
-                imageRequestBody
-            )
-            val formattedDateTimeTruncated = getCurrentDateTimeInIsoFormatTruncatedToSecond()
-            val response = apiService.startCheckIn(
-                imagePart = imagePart,
-                latitude = latitude,
-                longitude = longitude,
-                dateTime = formattedDateTimeTruncated
-            )
-            if (response.isSuccessful) {
-                message = context.getString(R.string.check_in_successful)
-                markImageAsUploaded(imageId)
-            } else {
-                message = context.getString(R.string.check_in_failed)
-            }
-            if(Constants.savePhotoToGallery){
-                saveImageToGallery(
-                    context,
-                    imageByteArray,
-                    "checkIn_image_${imageId}.jpg"
+    ): Flow<Result<String>> = flow {
+        if (networkUtils.isNetworkAvailable()) {
+            try {
+                if (imageByteArray.isEmpty()) {
+                    emit(Result.failure(Exception("Image data not available.")))
+                }
+                val imageRequestBody = imageByteArray.toRequestBody(
+                    "image/jpeg".toMediaTypeOrNull(), // Or "image/png" depending on your image format
+                    0, // offset
+                    imageByteArray.size // size
                 )
+                val imagePart = MultipartBody.Part.createFormData(
+                    "Image", // Name "Image" to match curl command
+                    "image_${imageId}.jpg", // This is the filename sent to the server
+                    imageRequestBody
+                )
+                val formattedDateTimeTruncated = getCurrentDateTimeInIsoFormatTruncatedToSecond()
+                val response = apiService.startCheckIn(
+                    imagePart = imagePart,
+                    latitude = latitude,
+                    longitude = longitude,
+                    dateTime = formattedDateTimeTruncated
+                )
+                if (response.isSuccessful) {
+                    val data = response.body()
+                    markImageAsUploaded(imageId)
+                    //emit(Result.success(data))
+                    emit(Result.success("Check in successful!"))
+                } else {
+                    emit(Result.failure(Exception("Check in failed!")))
+                }
+                if (Constants.savePhotoToGallery) {
+                    saveImageToGallery(
+                        context,
+                        imageByteArray,
+                        "checkIn_image_${imageId}.jpg"
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Exception during check-in API call: ${e.message}", e)
+                emit(Result.failure(Exception("Check In Network error: ${e.message}")))
             }
-        } catch (e: Exception) {
-            message = context.getString(R.string.check_in_failed) + "${e.message}"
-            Log.e("FaceLivenessRepository", "###@@@ Error during CheckIn for image ${imageId}", e)
+        } else {
+            // No internet - use cached data immediately
+            emit(Result.failure(Exception("No internet connection and no cached data available")))
         }
-        Log.d(
-            "FaceLivenessRepository",
-            "###@@@ startCheckIn: Processed." // More specific log
-        )
-        return message
     }
 
-    suspend fun startCheckOut(
+    fun startCheckOut(
         context: Context,
         imageId: Long,
         imageByteArray: ByteArray,
         latitude: Float,
         longitude: Float
-    ) : String{
-        var message = ""
-        try {
-            if (imageByteArray.isEmpty()) { return "Image doesn't exist. Capture again."}
-            val imageRequestBody = imageByteArray.toRequestBody(
-                "image/jpeg".toMediaTypeOrNull(), // Or "image/png" depending on your image format
-                0, // offset
-                imageByteArray.size // size
-            )
-            val imagePart = MultipartBody.Part.createFormData(
-                "Image", // Name "Image" to match curl command
-                "image_${imageId}.jpg", // This is the filename sent to the server
-                imageRequestBody
-            )
-            if(Constants.savePhotoToGallery){
-                //save this image to gallery
-                saveImageToGallery(
-                    context,
-                    imageByteArray,
-                    "checkIn_image_${imageId}.jpg"
+    ): Flow<Result<String?>> = flow {
+        if (networkUtils.isNetworkAvailable()) {
+            try {
+                if (imageByteArray.isEmpty()) {
+                    emit(Result.failure(Exception("Image data not available for check out.")))
+                }
+                val imageRequestBody = imageByteArray.toRequestBody(
+                    "image/jpeg".toMediaTypeOrNull(), // Or "image/png" depending on your image format
+                    0, // offset
+                    imageByteArray.size // size
                 )
+                val imagePart = MultipartBody.Part.createFormData(
+                    "Image", // Name "Image" to match curl command
+                    "image_${imageId}.jpg", // This is the filename sent to the server
+                    imageRequestBody
+                )
+                if (Constants.savePhotoToGallery) {
+                    //save this image to gallery
+                    saveImageToGallery(
+                        context,
+                        imageByteArray,
+                        "checkIn_image_${imageId}.jpg"
+                    )
+                }
+                val formattedDateTimeTruncated = getCurrentDateTimeInIsoFormatTruncatedToSecond()
+                val response = apiService.startCheckOut(
+                    imagePart = imagePart,
+                    latitude = latitude,
+                    longitude = longitude,
+                    dateTime = formattedDateTimeTruncated
+                )
+                if (response.isSuccessful) {
+                    val data = response.body()
+                    markImageAsUploaded(imageId)
+                    //emit(Result.success(data))
+                    emit(Result.success("Check out successful!"))
+                } else {
+                    emit(Result.failure(Exception("Check out failed!")))
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Exception during check-in API call: ${e.message}", e)
+                emit(Result.failure(Exception("Check In Network error: ${e.message}")))
             }
-            val formattedDateTimeTruncated = getCurrentDateTimeInIsoFormatTruncatedToSecond()
-            val response = apiService.startCheckOut(
-                imagePart = imagePart,
-                latitude = latitude,
-                longitude = longitude,
-                dateTime = formattedDateTimeTruncated
-            )
-            if (response.isSuccessful) {
-                message = context.getString(R.string.check_out_successful)
-                markImageAsUploaded(imageId)
-            } else {
-                message = context.getString(R.string.check_out_failed)
-            }
-        } catch (e: Exception) {
-            Log.e("FaceLivenessRepository", "###@@@ Error during Checkout for image ${imageId}", e)
-            message = context.getString(R.string.check_out_failed) + "${e.message}"
+        } else {
+            // No internet - use cached data immediately
+            emit(Result.failure(Exception("No internet connection and no cached data available")))
         }
-        Log.d(
-            "FaceLivenessRepository",
-            "###@@@ startCheckout: Processed." // More specific log
-        )
-        return message
     }
 
     // You might also need a function to delete images after successful upload or after a certain age

@@ -1,5 +1,6 @@
 package com.xyz.strapp.presentation.logs
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.xyz.strapp.domain.model.AttendanceLogModel
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.coroutines.CoroutineContext
 
 @HiltViewModel
 class LogsViewModel @Inject constructor(
@@ -91,16 +93,44 @@ class LogsViewModel @Inject constructor(
     fun loadPendingUploads() {
         viewModelScope.launch {
             _uiState.value = LogsUiState.Loading
-            
             try {
                 val pendingUploads = faceLivenessRepository.getPendingUploads()
                 if (pendingUploads.isEmpty()) {
                     _uiState.value = LogsUiState.EmptyPendingUploads
                 } else {
-                    _uiState.value = LogsUiState.PendingUploads(pendingUploads)
+                    _uiState.value = LogsUiState.PendingUploads(false, pendingUploads)
                 }
             } catch (e: Exception) {
                 _uiState.value = LogsUiState.Error(e.message ?: "Unknown error loading pending uploads")
+            }
+        }
+    }
+
+    fun uploadPendingLogs(context: Context) {
+        viewModelScope.launch {
+            _uiState.value = LogsUiState.PendingUploads(true, faceLivenessRepository.getPendingUploads())
+            //_uiState.value = LogsUiState.PendingLogsLoader
+            // Get the auth token
+            val authToken = loginRepository.getToken()
+            if (authToken.isNullOrEmpty()) {
+                _uiState.value = LogsUiState.Error("Not logged in")
+                return@launch
+            }
+
+            faceLivenessRepository.uploadPendingLogsToServer(context = context).collectLatest { result ->
+                /*_uiState.value = r*/result.fold(
+                    onSuccess = { pendingUploads ->
+                        if (pendingUploads.isEmpty()) {
+                            _uiState.value = LogsUiState.EmptyPendingUploads
+                        } else {
+                            //LogsUiState.PendingUploads(pendingUploads)
+                            _uiState.value = LogsUiState.PendingUploads(true, pendingUploads)
+                        }
+                    },
+                    onFailure = { error ->
+                        _uiState.value = LogsUiState.Error(error.message ?: "Unknown error")
+                    }
+                )
             }
         }
     }
@@ -111,6 +141,6 @@ sealed class LogsUiState {
     object Empty : LogsUiState()
     object EmptyPendingUploads : LogsUiState()
     data class Success(val logs: List<AttendanceLogModel>) : LogsUiState()
-    data class PendingUploads(val pendingUploads: List<FaceImageEntity>) : LogsUiState()
+    data class PendingUploads(val isUploading: Boolean, val pendingUploads: List<FaceImageEntity>) : LogsUiState()
     data class Error(val message: String) : LogsUiState()
 }

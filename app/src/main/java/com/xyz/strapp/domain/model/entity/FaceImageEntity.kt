@@ -21,6 +21,9 @@ data class FaceImageEntity(
     @ColumnInfo(name = "is_uploaded")
     var isUploaded: Boolean = false,
 
+    @ColumnInfo(name = "is_check_in")
+    var isCheckIn: Boolean = false,
+
     @ColumnInfo(name = "latitude")
     var latitude: Float = 0.0f,
 

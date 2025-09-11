@@ -167,15 +167,15 @@ object AppModule {
      * This repository will handle saving face images and uploading them.
      * Assumes FaceLivenessRepository takes FaceImageDao as a constructor parameter.*/
 
-    @Singleton // Repositories are often singletons
+    @Singleton
     @Provides
     fun provideFaceLivenessRepository(
-        faceImageDao: FaceImageDao, // Use the fully qualified name or import
-        // Add other dependencies if needed, e.g., a Retrofit API service for uploads
+        faceImageDao: FaceImageDao,
         apiService: ApiService,
-        tokenProvider: MyTokenProvider
-    ): FaceLivenessRepository { // Use the fully qualified name or import
-        return FaceLivenessRepository(faceImageDao, apiService, tokenProvider.getToken())// , faceApiService )
+        tokenProvider: MyTokenProvider,
+        networkUtils: NetworkUtils,
+    ): FaceLivenessRepository {
+        return FaceLivenessRepository(faceImageDao, apiService, tokenProvider.getToken(), networkUtils)// , faceApiService )
     }
     
     /**

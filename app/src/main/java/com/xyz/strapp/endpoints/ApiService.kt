@@ -70,7 +70,7 @@ interface ApiService {
         @Query("Latitude") latitude: Float,
         @Query("Longitude") longitude: Float,
         @Query("dateTime") dateTime: String
-    ): Response<UploadResponse>
+    ): Response<CheckInResponse>
 
 
     @POST("api/AttendanceRegister/UploadImage")

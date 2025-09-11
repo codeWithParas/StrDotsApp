@@ -20,6 +20,7 @@ import androidx.work.WorkManager
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.mlkit.vision.face.Face
 import com.xyz.strapp.domain.repository.FaceLivenessRepository
+import com.xyz.strapp.presentation.logs.LogsUiState
 import com.xyz.strapp.worker.ImageUploadWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -27,6 +28,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -136,6 +138,7 @@ class LivenessViewModel @Inject constructor(
                     //lastTrackedFaceIdForCountdown = faceEntry?.key?.trackingId
                     Log.d(TAG, "###@@@ Scanned Tracking Id -- ${faceEntry?.key?.trackingId}")
                     if (faceEntry == null) {
+                        capturedImageForProcessing = faceBitmap
                         Log.d(TAG, "###@@@ Countdown Started.")
                         lastTrackedFaceIdForCountdown = results.entries.first().key.trackingId
                         Log.d(
@@ -197,7 +200,6 @@ class LivenessViewModel @Inject constructor(
             _uiState.value = LivenessScreenUiState.CaptureError("Error: No image to capture.")
             return
         }
-
         val finalCheckFaceResult =
             _livenessResults.value.entries.find { it.key.trackingId == lastTrackedFaceIdForCountdown }
         if (finalCheckFaceResult == null || !finalCheckFaceResult.value.isLive) {
@@ -205,35 +207,36 @@ class LivenessViewModel @Inject constructor(
             resetCaptureState()
             return
         }
-
         _uiState.value = LivenessScreenUiState.ProcessingCapture
         viewModelScope.launch {
             try {
                 //Attempting to save image to repository.
-                val imageId = faceLivenessRepository.saveFaceImage(bitmapToSave, latitude, longitude)
+                val imageId = faceLivenessRepository.saveFaceImageToRoomDatabase(bitmapToSave, latitude, longitude, isCheckInFlow)
                 if (imageId?.first != null) {
-                    //enqueueImageUploadWorker()
-                    val apiMessage = if(isCheckInFlow) {
+                    if(isCheckInFlow) {
                         faceLivenessRepository.startCheckIn(context, imageId.first, imageId.second, latitude, longitude)
                     } else {
                         faceLivenessRepository.startCheckOut(context, imageId.first, imageId.second, latitude, longitude)
-                    }
-
-                    if(apiMessage.contains("Success")) {
-                        val message = if(isCheckInFlow) {
-                            "Person Checked-In Successfully!.\nRecord saved locally."
-                        } else {
-                            "Person Checked-Out Successfully!.\nRecord saved locally."
-                        }
-                        _uiState.value = LivenessScreenUiState.CaptureSuccess(message)
-                    } else {
-                        // Show error dialog
-                        val message = if(isCheckInFlow) {
-                            "Unable to Checked-In.\nRecord saved locally."
-                        } else {
-                            "Unable to Checked-Out,\nRecord saved locally."
-                        }
-                        _uiState.value = LivenessScreenUiState.CaptureSuccess(message)
+                    }.collectLatest { result ->
+                        _uiState.value = result.fold(
+                            onSuccess = { responseMsg ->
+                                val message = if(isCheckInFlow) {
+                                    "Person Checked-In Successfully!.\nRecord saved locally."
+                                } else {
+                                    "Person Checked-Out Successfully!.\nRecord saved locally."
+                                }
+                                LivenessScreenUiState.CaptureSuccess(message)
+                            },
+                            onFailure = { error ->
+                                // Show error dialog
+                                val message = if(isCheckInFlow) {
+                                    "Unable to Checked-In.\nRecord saved locally."
+                                } else {
+                                    "Unable to Checked-Out,\nRecord saved locally."
+                                }
+                                LivenessScreenUiState.CaptureSuccess(message)
+                            }
+                        )
                     }
                 } else {
                     _uiState.value =
