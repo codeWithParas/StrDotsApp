@@ -3,8 +3,11 @@ package com.xyz.strapp.presentation.logs
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.xyz.strapp.domain.model.AttendanceLogModel
+import com.xyz.strapp.domain.model.entity.FaceImageEntity
 import com.xyz.strapp.domain.repository.AttendanceLogsRepository
+import com.xyz.strapp.domain.repository.FaceLivenessRepository
 import com.xyz.strapp.domain.repository.LoginRepository
+import com.xyz.strapp.utils.NetworkUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,14 +19,45 @@ import javax.inject.Inject
 @HiltViewModel
 class LogsViewModel @Inject constructor(
     private val attendanceLogsRepository: AttendanceLogsRepository,
-    private val loginRepository: LoginRepository
+    private val loginRepository: LoginRepository,
+    private val faceLivenessRepository: FaceLivenessRepository,
+    private val networkUtils: NetworkUtils
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<LogsUiState>(LogsUiState.Loading)
     val uiState: StateFlow<LogsUiState> = _uiState.asStateFlow()
+    
+    private val _selectedTab = MutableStateFlow(0)
+    val selectedTab: StateFlow<Int> = _selectedTab.asStateFlow()
+    
+    private val _isOnline = MutableStateFlow(false)
+    val isOnline: StateFlow<Boolean> = _isOnline.asStateFlow()
 
     init {
         loadLogs()
+        observeNetworkConnectivity()
+    }
+    
+    private fun observeNetworkConnectivity() {
+        viewModelScope.launch {
+            networkUtils.observeNetworkConnectivity().collect { isConnected ->
+                _isOnline.value = isConnected
+                
+                // If we just came back online and we're on the logs tab, refresh data
+                if (isConnected && _selectedTab.value == 0) {
+                    loadLogs()
+                }
+            }
+        }
+    }
+    
+    fun setSelectedTab(index: Int) {
+        _selectedTab.value = index
+        if (index == 0) {
+            loadLogs()
+        } else {
+            loadPendingUploads()
+        }
     }
 
     fun loadLogs() {
@@ -53,11 +87,30 @@ class LogsViewModel @Inject constructor(
             }
         }
     }
+    
+    fun loadPendingUploads() {
+        viewModelScope.launch {
+            _uiState.value = LogsUiState.Loading
+            
+            try {
+                val pendingUploads = faceLivenessRepository.getPendingUploads()
+                if (pendingUploads.isEmpty()) {
+                    _uiState.value = LogsUiState.EmptyPendingUploads
+                } else {
+                    _uiState.value = LogsUiState.PendingUploads(pendingUploads)
+                }
+            } catch (e: Exception) {
+                _uiState.value = LogsUiState.Error(e.message ?: "Unknown error loading pending uploads")
+            }
+        }
+    }
 }
 
 sealed class LogsUiState {
     object Loading : LogsUiState()
     object Empty : LogsUiState()
+    object EmptyPendingUploads : LogsUiState()
     data class Success(val logs: List<AttendanceLogModel>) : LogsUiState()
+    data class PendingUploads(val pendingUploads: List<FaceImageEntity>) : LogsUiState()
     data class Error(val message: String) : LogsUiState()
 }

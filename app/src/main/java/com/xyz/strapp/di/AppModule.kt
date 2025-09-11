@@ -7,6 +7,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
+import com.xyz.strapp.data.dao.AttendanceLogDao
 import com.xyz.strapp.data.dao.FaceImageDao
 import com.xyz.strapp.data.dao.LoginDao
 import com.xyz.strapp.data.dao.ProfileDao
@@ -16,6 +17,7 @@ import com.xyz.strapp.domain.model.auth.MyTokenProvider
 import com.xyz.strapp.domain.repository.AttendanceLogsRepository
 import com.xyz.strapp.domain.repository.FaceLivenessRepository
 import com.xyz.strapp.endpoints.ApiService
+import com.xyz.strapp.utils.NetworkUtils
 import com.xyz.strapp.utils.Utils.DATABASE_NAME
 import dagger.Module
 import dagger.Provides
@@ -109,7 +111,9 @@ object AppModule {
             context,
             AppDatabase::class.java,
             DATABASE_NAME
-        ).build()
+        )
+        .fallbackToDestructiveMigration() // For simplicity, recreate database if schema changes
+        .build()
     }
 
     @Singleton
@@ -148,6 +152,15 @@ object AppModule {
     fun provideFaceImageDao(appDatabase: AppDatabase): FaceImageDao { // Use the fully qualified name or import
         return appDatabase.faceImageDao()
     }
+    
+    /**
+     * Provides the DAO for attendance log operations.
+     */
+    @Singleton
+    @Provides
+    fun provideAttendanceLogDao(appDatabase: AppDatabase): AttendanceLogDao {
+        return appDatabase.attendanceLogDao()
+    }
 
     /**
      * Provides the repository for face liveness operations.
@@ -171,15 +184,26 @@ object AppModule {
     @Singleton
     @Provides
     fun provideAttendanceLogsRepository(
-        apiService: ApiService
+        apiService: ApiService,
+        networkUtils: NetworkUtils,
+        attendanceLogDao: AttendanceLogDao
     ): AttendanceLogsRepository {
-        return AttendanceLogsRepository(apiService)
+        return AttendanceLogsRepository(apiService, networkUtils, attendanceLogDao)
     }
 
     @Provides
     @Singleton
     fun provideFusedLocationProviderClient(@ApplicationContext context: Context): FusedLocationProviderClient {
         return LocationServices.getFusedLocationProviderClient(context)
+    }
+    
+    /**
+     * Provides the NetworkUtils for checking network connectivity
+     */
+    @Provides
+    @Singleton
+    fun provideNetworkUtils(@ApplicationContext context: Context): NetworkUtils {
+        return NetworkUtils(context)
     }
 
     /*@Provides

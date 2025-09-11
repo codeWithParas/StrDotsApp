@@ -1,6 +1,7 @@
 package com.xyz.strapp.domain.model
 
 import com.google.gson.annotations.SerializedName
+import com.xyz.strapp.domain.model.entity.AttendanceLogEntity
 import com.xyz.strapp.utils.Utils
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -55,6 +56,36 @@ data class AttendanceLogModel(
     fun getLocationString(): String {
         return "Lat: $latitude, Long: $longitude"
     }
+    
+    /**
+     * Converts AttendanceLogModel to AttendanceLogEntity for database storage
+     */
+    fun toEntity(): AttendanceLogEntity {
+        return AttendanceLogEntity(
+            employeeName = employeeName,
+            employeeCode = employeeCode,
+            latitude = latitude,
+            longitude = longitude,
+            dateTime = dateTime,
+            message = message,
+            action = action
+        )
+    }
+}
+
+/**
+ * Extension function to convert AttendanceLogEntity to AttendanceLogModel
+ */
+fun AttendanceLogEntity.toModel(): AttendanceLogModel {
+    return AttendanceLogModel(
+        employeeName = employeeName,
+        employeeCode = employeeCode,
+        latitude = latitude,
+        longitude = longitude,
+        dateTime = dateTime,
+        message = message,
+        action = action
+    )
 }
 
 // The API returns a direct array, not wrapped in an object
