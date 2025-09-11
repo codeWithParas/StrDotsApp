@@ -4,7 +4,6 @@ import com.xyz.strapp.domain.model.CheckInResponse
 import com.xyz.strapp.domain.model.AttendanceLogsResponse
 import com.xyz.strapp.domain.model.LoginRequest
 import com.xyz.strapp.domain.model.LoginResponse
-import com.xyz.strapp.domain.model.UploadImageRequest
 import com.xyz.strapp.domain.model.ProfileResponse
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -73,9 +72,10 @@ interface ApiService {
     ): Response<CheckInResponse>
 
 
+    @Multipart
     @POST("api/AttendanceRegister/UploadImage")
     suspend fun uploadImage(
-        @Body uploadData: UploadImageRequest
+        @Part imagePart: MultipartBody.Part
     ): Response<UploadResponse>
 
     /**

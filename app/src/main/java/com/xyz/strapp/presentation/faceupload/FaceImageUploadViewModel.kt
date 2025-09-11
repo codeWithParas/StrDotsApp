@@ -1,11 +1,9 @@
 package com.xyz.strapp.presentation.faceupload
 
 import android.graphics.Bitmap
-import android.util.Base64
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.xyz.strapp.domain.model.UploadImageRequest
 import com.xyz.strapp.domain.repository.LoginRepository
 import com.xyz.strapp.endpoints.ApiService
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -223,7 +221,7 @@ class FaceImageUploadViewModel @Inject constructor(
     }
 
     /**
-     * Convert bitmap to base64 and upload to attendance server using /api/AttendanceRegister/UploadImage
+     * Convert bitmap to multipart and upload to attendance server using /api/AttendanceRegister/UploadImage
      */
     private suspend fun uploadBitmapToAttendanceServer(bitmap: Bitmap): Result<Unit> {
         return withContext(Dispatchers.IO) {
@@ -237,14 +235,21 @@ class FaceImageUploadViewModel @Inject constructor(
                     return@withContext Result.failure(Exception("Failed to convert image to byte array"))
                 }
 
-                // Convert to base64 string
-                val base64Image = Base64.encodeToString(imageByteArray, Base64.DEFAULT)
-                
-                // Create upload request
-                val uploadRequest = UploadImageRequest(image = base64Image)
+                // Create multipart body part for the image
+                val imageRequestBody = imageByteArray.toRequestBody(
+                    "image/jpeg".toMediaTypeOrNull(),
+                    0,
+                    imageByteArray.size
+                )
+
+                val imagePart = MultipartBody.Part.createFormData(
+                    "Image", // Use "Image" as the field name to match API documentation
+                    "face_image_${System.currentTimeMillis()}.jpg",
+                    imageRequestBody
+                )
 
                 // Make API call
-                val response = apiService.uploadImage(uploadRequest)
+                val response = apiService.uploadImage(imagePart)
 
                 if (response.isSuccessful) {
                     val uploadResponse = response.body()
