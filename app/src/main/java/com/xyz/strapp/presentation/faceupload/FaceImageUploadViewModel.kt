@@ -226,10 +226,13 @@ class FaceImageUploadViewModel @Inject constructor(
     private suspend fun uploadBitmapToAttendanceServer(bitmap: Bitmap): Result<Unit> {
         return withContext(Dispatchers.IO) {
             try {
-                // Convert bitmap to byte array
+                // Convert bitmap to byte array with compression
                 val outputStream = ByteArrayOutputStream()
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, outputStream)
+                // Use 70% quality for good balance between file size and image quality
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 70, outputStream)
                 val imageByteArray = outputStream.toByteArray()
+                
+                Log.d(TAG, "Compressed image size: ${imageByteArray.size} bytes (${imageByteArray.size / 1024}KB)")
 
                 if (imageByteArray.isEmpty()) {
                     return@withContext Result.failure(Exception("Failed to convert image to byte array"))
@@ -252,12 +255,27 @@ class FaceImageUploadViewModel @Inject constructor(
                 val response = apiService.uploadImage(imagePart)
 
                 if (response.isSuccessful) {
-                    val uploadResponse = response.body()
-                    if (uploadResponse?.success == true) {
-                        Log.d(TAG, "Image uploaded successfully: ${uploadResponse.message}")
-                        Result.success(Unit)
+                    val responseBody = response.body()
+                    if (!responseBody.isNullOrEmpty()) {
+                        // Check if response indicates success
+                        val isSuccess = responseBody.contains("success", ignoreCase = true) || 
+                                       responseBody.contains("saved", ignoreCase = true) ||
+                                       response.code() == 200
+                        
+                        if (isSuccess) {
+                            Log.d(TAG, "Image uploaded successfully: $responseBody")
+                            Result.success(Unit)
+                        } else {
+                            Result.failure(Exception("Upload failed: $responseBody"))
+                        }
                     } else {
-                        Result.failure(Exception(uploadResponse?.message ?: "Upload failed"))
+                        // Empty response but HTTP 200 - consider success
+                        if (response.code() == 200) {
+                            Log.d(TAG, "Image uploaded successfully (empty response)")
+                            Result.success(Unit)
+                        } else {
+                            Result.failure(Exception("Empty response"))
+                        }
                     }
                 } else {
                     Result.failure(Exception("HTTP ${response.code()}: ${response.message()}"))

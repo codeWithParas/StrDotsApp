@@ -76,7 +76,7 @@ interface ApiService {
     @POST("api/AttendanceRegister/UploadImage")
     suspend fun uploadImage(
         @Part imagePart: MultipartBody.Part
-    ): Response<UploadResponse>
+    ): Response<String>
 
     /**
      * Uploads a face image during login/onboarding process

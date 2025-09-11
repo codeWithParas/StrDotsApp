@@ -3,35 +3,24 @@ package com.xyz.strapp.presentation.faceupload
 import android.Manifest
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Canvas as AndroidCanvas
-import android.graphics.Color as AndroidColor
-import android.graphics.ImageFormat
+import android.graphics.Matrix
 import android.graphics.Paint
-import android.graphics.Rect
-import android.graphics.YuvImage
-import android.media.ImageReader
 import android.util.Log
-import androidx.core.content.ContextCompat
-import java.io.File
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
-import androidx.camera.core.ImageProxy
-import androidx.camera.core.Preview as CameraPreview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import java.io.ByteArrayOutputStream as JavaByteArrayOutputStream
-import java.nio.ByteBuffer
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -45,18 +34,17 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -87,6 +75,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
+import androidx.exifinterface.media.ExifInterface
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -95,8 +85,10 @@ import com.google.accompanist.permissions.shouldShowRationale
 import com.xyz.strapp.ui.theme.StrAppTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.io.ByteArrayOutputStream
-import java.util.concurrent.Executors
+import java.io.File
+import android.graphics.Canvas as AndroidCanvas
+import android.graphics.Color as AndroidColor
+import androidx.camera.core.Preview as CameraPreview
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
@@ -501,9 +493,11 @@ private fun captureImageFromCamera(imageCapture: ImageCapture, context: android.
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
                     try {
                         // Convert the saved file to bitmap
-                        val bitmap = BitmapFactory.decodeFile(photoFile.absolutePath)
-                        if (bitmap != null) {
-                            onImageCaptured(bitmap)
+                        val originalBitmap = BitmapFactory.decodeFile(photoFile.absolutePath)
+                        if (originalBitmap != null) {
+                            // Fix rotation and compress the image
+                            val correctedBitmap = fixImageRotationAndCompress(photoFile.absolutePath, originalBitmap)
+                            onImageCaptured(correctedBitmap)
                         } else {
                             Log.e("CameraCapture", "Failed to decode captured image")
                             createFallbackBitmap(onImageCaptured)
@@ -527,6 +521,63 @@ private fun captureImageFromCamera(imageCapture: ImageCapture, context: android.
     } catch (e: Exception) {
         Log.e("CameraCapture", "Error setting up image capture", e)
         createFallbackBitmap(onImageCaptured)
+    }
+}
+
+// Fix image rotation and compress
+private fun fixImageRotationAndCompress(imagePath: String, bitmap: Bitmap): Bitmap {
+    return try {
+        // Read EXIF data to get rotation
+        val exif = ExifInterface(imagePath)
+        val orientation = exif.getAttributeInt(
+            ExifInterface.TAG_ORIENTATION,
+            ExifInterface.ORIENTATION_NORMAL
+        )
+        
+        // Calculate rotation angle
+        val rotationAngle = when (orientation) {
+            ExifInterface.ORIENTATION_ROTATE_90 -> 90f
+            ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+            ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+            else -> 0f
+        }
+        
+        // For front camera, we might need additional rotation
+        // Front camera images are often mirrored and need 180 degree rotation
+        val totalRotation = rotationAngle + 0f // Adjust this if needed based on testing
+        
+        // Create rotation matrix
+        val matrix = Matrix()
+        if (totalRotation != 0f) {
+            matrix.postRotate(totalRotation)
+        }
+        
+        // Also flip horizontally for front camera (natural mirror effect)
+        matrix.postScale(-1f, 1f, bitmap.width / 2f, bitmap.height / 2f)
+        
+        // Apply rotation and create new bitmap
+        val rotatedBitmap = Bitmap.createBitmap(
+            bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true
+        )
+        
+        // Compress the image - resize to reasonable size for face recognition
+        val targetWidth = 480
+        val targetHeight = 640
+        
+        val scaledBitmap = Bitmap.createScaledBitmap(
+            rotatedBitmap, targetWidth, targetHeight, true
+        )
+        
+        // Clean up intermediate bitmap if it's different from original
+        if (rotatedBitmap != bitmap && rotatedBitmap != scaledBitmap) {
+            rotatedBitmap.recycle()
+        }
+        
+        scaledBitmap
+    } catch (e: Exception) {
+        Log.e("ImageProcessing", "Error fixing rotation and compressing image", e)
+        // Return original bitmap if processing fails
+        bitmap
     }
 }
 
