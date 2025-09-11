@@ -1,5 +1,6 @@
 package com.xyz.strapp.presentation.userlogin
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.xyz.strapp.domain.model.LoginRequest
@@ -84,5 +85,14 @@ class LoginViewModel @Inject constructor(
      */
     fun resetLoginState() {
         _loginUiState.value = LoginUiState.Idle
+    }
+
+    fun getLanguage() : String  {
+        var language = "en"
+        viewModelScope.launch {
+            language = loginRepository.getPreferredLanguage()
+        }
+        Log.d("LoginVM", "language: ${language}")
+        return language
     }
 }

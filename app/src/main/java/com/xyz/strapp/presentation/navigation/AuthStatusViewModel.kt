@@ -1,9 +1,12 @@
 package com.xyz.strapp.presentation.navigation
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.xyz.strapp.domain.repository.LoginRepository
+import com.xyz.strapp.utils.restartApp
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,6 +20,11 @@ class AuthStatusViewModel @Inject constructor(
     private val loginRepository: LoginRepository
 ) : ViewModel() {
 
+
+
+    private val _isLanguageSelected = MutableStateFlow<Boolean?>(null)
+    val isLanguageSelected : StateFlow<Boolean?> = _isLanguageSelected.asStateFlow()
+
     private val _isUserLoggedIn = MutableStateFlow<Boolean?>(null) // Null initially, then true/false
     val isUserLoggedIn: StateFlow<Boolean?> = _isUserLoggedIn.asStateFlow()
 
@@ -27,10 +35,29 @@ class AuthStatusViewModel @Inject constructor(
         checkLoginStatus()
     }
 
+     fun setLanguage(language:String){
+         viewModelScope.launch {
+             loginRepository.setPreferredLanguage(language)
+         }
+    }
+
+
+    fun getLanguage() : String  {
+        var language = "en"
+        viewModelScope.launch {
+            language = loginRepository.getPreferredLanguage()
+            Log.d("LoginVM", "language SP: ${language}")
+        }
+        Log.d("LoginVM", "language: ${language}")
+        return language
+    }
+
     fun checkLoginStatus() {
         _isLoading.value = true
         viewModelScope.launch {
             val loggedIn = loginRepository.isLoggedIn() // Call the suspend function
+            val languageSelected = loginRepository.isLanguageSelected()
+            _isLanguageSelected.value = languageSelected
             _isUserLoggedIn.value = loggedIn
             _isLoading.value = false
         }

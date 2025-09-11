@@ -14,7 +14,8 @@ object LogsPreviewData {
             longitude = 77.44539,
             dateTime = "2025-09-08T09:30:00",
             message = "No message",
-            action = "CheckIn"
+            action = "CheckIn",
+            imagePath = "http://103.186.230.15:7401/api/AttendanceRegister/DownloadLogs?id=5e6f884e-5c37-42fd-8e3a-0ef2b0b8c7f7"
         ),
         AttendanceLogModel(
             employeeName = "John Doe",
@@ -23,7 +24,8 @@ object LogsPreviewData {
             longitude = 77.44539,
             dateTime = "2025-09-08T17:45:00",
             message = "No message",
-            action = "CheckOut"
+            action = "CheckOut",
+            imagePath = "http://103.186.230.15:7401/api/AttendanceRegister/DownloadLogs?id=5e6f884e-5c37-42fd-8e3a-0ef2b0b8c7f7"
         ),
         AttendanceLogModel(
             employeeName = "John Doe",
@@ -32,7 +34,8 @@ object LogsPreviewData {
             longitude = 77.44539,
             dateTime = "2025-09-09T09:15:00",
             message = "Working from office",
-            action = "CheckIn"
+            action = "CheckIn",
+            imagePath = "http://103.186.230.15:7401/api/AttendanceRegister/DownloadLogs?id=5e6f884e-5c37-42fd-8e3a-0ef2b0b8c7f7"
         ),
         AttendanceLogModel(
             employeeName = "NotFound",
@@ -41,7 +44,8 @@ object LogsPreviewData {
             longitude = 77.44539,
             dateTime = "2025-09-09T18:00:00",
             message = "No message",
-            action = "CheckOut"
+            action = "CheckOut",
+            imagePath = "http://103.186.230.15:7401/api/AttendanceRegister/DownloadLogs?id=5e6f884e-5c37-42fd-8e3a-0ef2b0b8c7f7"
         )
     )
 }

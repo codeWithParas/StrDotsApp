@@ -30,7 +30,7 @@ data class ProfileResponse(
     val startTime: String?,
     @SerializedName(value =  "endTime")
     val endTime: String?,
-    @SerializedName(value =  "image")
+    @SerializedName(value =  "imagePath")
     val image: String?,
     @SerializedName(value =  "email")
     val email: String?,

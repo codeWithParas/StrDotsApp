@@ -28,6 +28,7 @@ class LoginRepository @Inject constructor(
 ) {
 
     object PreferencesKeys {
+        val PREFERRED_LANGUAGE = stringPreferencesKey("preferred_language")
         val AUTH_TOKEN = stringPreferencesKey("auth_token")
         val TOKEN_EXPIRY = longPreferencesKey("token_expiry")
         val AUTH_TENANT_ID = stringPreferencesKey("tenant_id")
@@ -91,6 +92,27 @@ class LoginRepository @Inject constructor(
         return true
     }
 
+    suspend fun setPreferredLanguage(languageCode: String){
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.PREFERRED_LANGUAGE] = languageCode
+        }
+    }
+
+    suspend fun getPreferredLanguage() : String {
+        if(getPreferredLanguageFlow().first() == null){
+            return  "EN"
+        }
+        return getPreferredLanguageFlow().first()!!
+    }
+
+
+    suspend fun isLanguageSelected(): Boolean {
+        if(getPreferredLanguageFlow().first() == null){
+            return  false
+        }
+        return true
+    }
+
     suspend fun clearAllUserData() {
         // Clear DataStore preferences
         clearAuthToken()
@@ -126,11 +148,29 @@ class LoginRepository @Inject constructor(
             }
     }
 
+    private fun getPreferredLanguageFlow(): Flow<String?> {
+        return dataStore.data
+            .catch { exception ->
+                // dataStore.data throws an IOException when an error is encountered when reading data
+                if (exception is IOException) {
+                    Log.e("LoginRepository", "Error reading preferred language from DataStore.", exception)
+                    emit(emptyPreferences())
+                } else {
+                    throw exception
+                }
+            }
+            .map { preferences ->
+                preferences[PreferencesKeys.PREFERRED_LANGUAGE]
+            }
+    }
+
     private suspend fun saveTenantId(tenantId: String) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.AUTH_TENANT_ID] = tenantId
         }
     }
+
+
 
     private fun getTenantIdFlow(): Flow<String?> {
         return dataStore.data
@@ -165,13 +205,9 @@ class LoginRepository @Inject constructor(
     }
 
     private suspend fun getAuthTokenOnce(): String? {
-        return getAuthTokenFlow().first() // Gets the first emitted value
+        return getAuthTokenFlow().first()
     }
-    
-    /**
-     * Gets the current auth token, if available.
-     * @return The auth token as a string, or null if not available.
-     */
+
     suspend fun getToken(): String? {
         return getAuthTokenOnce()
     }

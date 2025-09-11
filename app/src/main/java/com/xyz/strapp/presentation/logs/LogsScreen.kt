@@ -1,6 +1,7 @@
 package com.xyz.strapp.presentation.logs
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
@@ -42,13 +44,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
+import com.xyz.strapp.R
 import com.xyz.strapp.domain.model.AttendanceLogModel
 import com.xyz.strapp.domain.model.entity.FaceImageEntity
 //import com.xyz.strapp.presentation.logs.LogsPreviewData
@@ -69,12 +76,12 @@ fun LogsScreen(
             Tab(
                 selected = selectedTab == 0,
                 onClick = { viewModel.setSelectedTab(0) },
-                text = { Text("Logs") }
+                text = { Text(stringResource(R.string.logs_online)) }
             )
             Tab(
                 selected = selectedTab == 1,
                 onClick = { viewModel.setSelectedTab(1) },
-                text = { Text("Pending Logs") }
+                text = { Text(stringResource(R.string.logs_offline)) }
             )
         }
         
@@ -174,7 +181,7 @@ fun SuccessState(logs: List<AttendanceLogModel>, isOffline: Boolean = false) {
         item {
             Column {
                 Text(
-                    text = "Attendance History",
+                    text = stringResource(R.string.logs_attendance_history),
                     style = MaterialTheme.typography.headlineMedium,
                     modifier = Modifier.padding(bottom = if (isOffline) 4.dp else 16.dp)
                 )
@@ -272,24 +279,43 @@ fun AttendanceLogItem(log: AttendanceLogModel) {
             }
             
             Divider(modifier = Modifier.padding(vertical = 8.dp))
-            
-            // Employee info with code
-            LogInfoRow(
-                icon = Icons.Default.Person,
-                label = "Employee",
-                value = if (log.employeeName != "NotFound") 
-                    "${log.employeeName} - ${log.employeeCode}" 
-                else 
-                    "N/A"
-            )
-            
-            // Time
-            Spacer(modifier = Modifier.height(8.dp))
-            LogInfoRow(
-                icon = Icons.Default.Schedule,
-                label = "Time",
-                value = log.getFormattedTime()
-            )
+            Row (
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                AsyncImage(
+                    model = log.imagePath, // your image URL
+                    contentDescription = "Sample image",
+                    modifier = Modifier
+                        .size(75.dp)
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+
+                Column (modifier = Modifier.padding(start = 10.dp)){
+                    // Employee info with code
+                    LogInfoRow(
+                        //icon = Icons.Default.Person,
+                        icon = null,
+                        label = "Employee",
+                        value = if (log.employeeName != "NotFound")
+                            "${log.employeeName} - ${log.employeeCode}"
+                        else
+                            "N/A"
+                    )
+
+                    // Time
+                    Spacer(modifier = Modifier.height(8.dp))
+                    LogInfoRow(
+                        //icon = Icons.Default.Schedule,
+                        icon = null,
+                        label = "Time",
+                        value = log.getFormattedTime()
+                    )
+                }
+            }
+
+            Divider(modifier = Modifier.padding(vertical = 8.dp))
             
             // Location
             Spacer(modifier = Modifier.height(8.dp))
@@ -303,7 +329,7 @@ fun AttendanceLogItem(log: AttendanceLogModel) {
             if (log.message != "No message") {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Message:",
+                    text = stringResource(R.string.logs_message),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -318,20 +344,24 @@ fun AttendanceLogItem(log: AttendanceLogModel) {
 }
 
 @Composable
-fun LogInfoRow(icon: ImageVector, label: String, value: String) {
+fun LogInfoRow(icon: ImageVector?, label: String, value: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(end = 8.dp)
-        )
-        Column {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+        if(icon != null)
+        {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(end = 8.dp)
             )
+        }
+
+        Column () {
+//            Text(
+//                text = label,
+//                style = MaterialTheme.typography.bodySmall,
+//                color = MaterialTheme.colorScheme.onSurfaceVariant
+//            )
             Text(
                 text = value,
                 style = MaterialTheme.typography.bodyMedium
@@ -358,7 +388,7 @@ fun ErrorState(message: String) {
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Error Loading Logs",
+                text = stringResource(R.string.logs_error_loading_logs),
                 style = MaterialTheme.typography.titleLarge,
                 color = Color.Red.copy(alpha = 0.7f)
             )
@@ -392,13 +422,13 @@ fun EmptyPendingUploadsState() {
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "No Pending Uploads",
+                text = stringResource(R.string.logs_no_pending_uploads),
                 style = MaterialTheme.typography.titleLarge,
                 color = Color.Gray
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "No data is pending to upload",
+                text = stringResource(R.string.logs_no_data_is_pending_to_upload),
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.Gray,
                 textAlign = TextAlign.Center,
@@ -418,7 +448,7 @@ fun PendingUploadsState(pendingUploads: List<FaceImageEntity>) {
     ) {
         item {
             Text(
-                text = "Pending Uploads",
+                text = stringResource(R.string.logs_pending_uploads),
                 style = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
@@ -473,7 +503,7 @@ fun PendingUploadItem(upload: FaceImageEntity) {
                             modifier = Modifier.padding(end = 4.dp)
                         )
                         Text(
-                            text = "Pending",
+                            text = stringResource(R.string.logs_pending),
                             color = Color(0xFFFF9800),
                             style = MaterialTheme.typography.bodyMedium
                         )
@@ -515,7 +545,7 @@ fun PendingUploadItem(upload: FaceImageEntity) {
                 )
                 Column {
                     Text(
-                        text = "Time",
+                        text = stringResource(R.string.logs_time),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -537,7 +567,7 @@ fun PendingUploadItem(upload: FaceImageEntity) {
                 )
                 Column {
                     Text(
-                        text = "Image Size",
+                        text = stringResource(R.string.logs_image_size),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -574,53 +604,74 @@ private fun formatTime(timestamp: String): String {
 //        SuccessState(logs = LogsPreviewData.mockLogs)
 //    }
 //}
+//
+//@Preview(showBackground = true)
+//@Composable
+//fun LogsScreenEmptyPreview() {
+//    StrAppTheme {
+//        EmptyState()
+//    }
+//}
+//
+//@Preview(showBackground = true)
+//@Composable
+//fun LogsScreenLoadingPreview() {
+//    StrAppTheme {
+//        LoadingState()
+//    }
+//}
+//
+//@Preview(showBackground = true)
+//@Composable
+//fun LogsScreenErrorPreview() {
+//    StrAppTheme {
+//        ErrorState(message = "Failed to connect to server")
+//    }
+//}
+//
+//@Preview(showBackground = true)
+//@Composable
+//fun EmptyPendingUploadsStatePreview() {
+//    StrAppTheme {
+//        EmptyPendingUploadsState()
+//    }
+//}
 
 @Preview(showBackground = true)
 @Composable
-fun LogsScreenEmptyPreview() {
-    StrAppTheme {
-        EmptyState()
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun LogsScreenLoadingPreview() {
-    StrAppTheme {
-        LoadingState()
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun LogsScreenErrorPreview() {
-    StrAppTheme {
-        ErrorState(message = "Failed to connect to server")
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun EmptyPendingUploadsStatePreview() {
-    StrAppTheme {
-        EmptyPendingUploadsState()
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PendingUploadItemPreview() {
-    StrAppTheme {
-        PendingUploadItem(
-            upload = FaceImageEntity(
-                id = 1,
-                imageData = ByteArray(1024 * 50), // 50KB mock data
-                timestamp = System.currentTimeMillis().toString(),
-                isUploaded = false
-            )
+fun  AttendanceUploadItemPreview() {
+    AttendanceLogItem(
+        log = AttendanceLogModel(
+            employeeName = "asd",
+            employeeCode = "asd",
+            latitude = 12.3,
+            longitude = 12.4,
+            dateTime = "asd",
+            message = "asd",
+            imagePath = "asd",
+            action = "asd",
         )
-    }
+    )
 }
+
+
+//@Preview(showBackground = true)
+//@Composable
+//fun PendingUploadItemPreview() {
+//    StrAppTheme {
+//        PendingUploadItem(
+//            upload = FaceImageEntity(
+//                id = 1,
+//                imageData = ByteArray(1024 * 50), // 50KB mock data
+//                timestamp = System.currentTimeMillis().toString(),
+//                isUploaded = false
+//            )
+//        )
+//    }
+//}
+
+
+
 
 //@Preview(showBackground = true)
 //@Composable

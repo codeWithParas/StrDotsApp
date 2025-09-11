@@ -24,7 +24,10 @@ data class AttendanceLogModel(
     
     @SerializedName("message")
     val message: String,
-    
+
+    @SerializedName("imagePath")
+    val imagePath: String,
+
     @SerializedName("action")
     val action: String,
 ) {
@@ -68,6 +71,7 @@ data class AttendanceLogModel(
             longitude = longitude,
             dateTime = dateTime,
             message = message,
+            imagePath = imagePath,
             action = action
         )
     }
@@ -84,6 +88,7 @@ fun AttendanceLogEntity.toModel(): AttendanceLogModel {
         longitude = longitude,
         dateTime = dateTime,
         message = message,
+        imagePath = imagePath,
         action = action
     )
 }

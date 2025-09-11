@@ -50,6 +50,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -87,10 +88,10 @@ fun HomeScreen(
 
     var selectedItemIndex by rememberSaveable { mutableIntStateOf(0) }
     val bottomNavItems = listOf(
-        BottomNavItem("Home", Icons.Filled.Home, "Home Screen"),
-        BottomNavItem("Dashboard", Icons.Filled.Dashboard, "Dashboard Screen"),
-        BottomNavItem("Logs", Icons.Filled.History, "Logs Screen"),
-        BottomNavItem("Profile", Icons.Filled.AccountCircle, "Profile Screen")
+        BottomNavItem(stringResource(R.string.home_home), Icons.Filled.Home, "Home Screen"),
+        BottomNavItem(stringResource(R.string.home_dashboard), Icons.Filled.Dashboard, "Dashboard Screen"),
+        BottomNavItem(stringResource(R.string.home_history), Icons.Filled.History, "Logs Screen"),
+        BottomNavItem(stringResource(R.string.home_profile), Icons.Filled.AccountCircle, "Profile Screen")
     )
 
 
@@ -166,10 +167,10 @@ fun HomeTabContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top // Changed from Center for more typical home layout
     ) {
-        Text("RTS Attendance App", style = MaterialTheme.typography.headlineMedium)
-        Spacer(modifier = Modifier.height(16.dp))
-        Text("Note - Select Check-In button to mark your attendance, try and place your phone in a way to place your face withing the oval to detect the face.")
-        Spacer(modifier = Modifier.height(30.dp))
+//        Text("RTS Attendance App", style = MaterialTheme.typography.headlineMedium)
+//        Spacer(modifier = Modifier.height(16.dp))
+//        Text("Note - Select Check-In button to mark your attendance, try and place your phone in a way to place your face withing the oval to detect the face.")
+//        Spacer(modifier = Modifier.height(30.dp))
 
         // Location UI
         when (val state = locationState) {
@@ -183,12 +184,12 @@ fun HomeTabContent(
             }
             is LocationUiState.Success -> {
                 viewModel.setLocation(state.location.latitude.toFloat(), state.location.longitude.toFloat())
-                Text(modifier = Modifier.fillMaxWidth(), text = "You are at location : ", style = MaterialTheme.typography.headlineSmall)
+                Text(modifier = Modifier.fillMaxWidth(), text = stringResource(R.string.home_your_location), style = MaterialTheme.typography.headlineSmall)
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(state.location.address, style = MaterialTheme.typography.bodyMedium)
             }
             is LocationUiState.Error -> {
-                Text("Location Error: ${state.message}")
+                Text("${stringResource(R.string.home_location_error)} ${state.message}")
             }
         }
 
@@ -201,7 +202,7 @@ fun HomeTabContent(
             }
         } else if (locationState is LocationUiState.Error || locationState is LocationUiState.Idle) {
             Button(onClick = { viewModel.fetchCurrentUserLocation() }) {
-                Text("Retry/Fetch Location")
+                Text(stringResource(R.string.home_retry_to_fetch_location))
             }
         }
 
@@ -236,7 +237,7 @@ fun HomeTabContent(
                     alpha = 0.5F
                 )
                     Text(
-                        text = "Check In",
+                        text = stringResource(R.string.home_check_in),
                         modifier = Modifier.padding(26.dp),
                         style = MaterialTheme.typography.titleLarge,
                         textAlign = TextAlign.Center
@@ -272,7 +273,7 @@ fun HomeTabContent(
                         alpha = 0.5F
                     )
                     Text(
-                        text = "Check Out",
+                        text = stringResource(R.string.home_check_out),
                         modifier = Modifier.padding(26.dp),
                         style = MaterialTheme.typography.titleLarge,
                         textAlign = TextAlign.Center,
