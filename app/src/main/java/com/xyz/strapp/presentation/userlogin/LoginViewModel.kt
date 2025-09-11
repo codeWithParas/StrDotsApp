@@ -69,7 +69,7 @@ class LoginViewModel @Inject constructor(
                         // TODO: FOR TESTING - Always redirect to face upload screen
                         // Remove this when testing is complete and use the actual API response
                         _loginUiState.value = LoginUiState.FaceImageRequired(response)
-                        
+
                         // Original logic (commented out for testing):
                         // Check if face image is required
                         // if (response.faceImageRequried == true) {
@@ -79,7 +79,7 @@ class LoginViewModel @Inject constructor(
                         // }
                     } else {
                         // Use error message from response or default message
-                        val errorMsg = response.errorMessage?.takeIf { it.isNotBlank() } 
+                        val errorMsg = response.errorMessage?.takeIf { it.isNotBlank() }
                             ?: "Invalid Credentials"
                         _loginUiState.value = LoginUiState.Error(errorMsg)
                     }
