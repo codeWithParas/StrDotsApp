@@ -66,12 +66,17 @@ class LoginViewModel @Inject constructor(
             result.fold(
                 onSuccess = { response ->
                     if(response.isSuccess) {
+                        // TODO: FOR TESTING - Always redirect to face upload screen
+                        // Remove this when testing is complete and use the actual API response
+                        _loginUiState.value = LoginUiState.FaceImageRequired(response)
+                        
+                        // Original logic (commented out for testing):
                         // Check if face image is required
-                        if (response.faceImageRequried == true) {
-                            _loginUiState.value = LoginUiState.FaceImageRequired(response)
-                        } else {
-                            _loginUiState.value = LoginUiState.Success(response)
-                        }
+                        // if (response.faceImageRequried == true) {
+                        //     _loginUiState.value = LoginUiState.FaceImageRequired(response)
+                        // } else {
+                        //     _loginUiState.value = LoginUiState.Success(response)
+                        // }
                     } else {
                         // Use error message from response or default message
                         val errorMsg = response.errorMessage?.takeIf { it.isNotBlank() } 
