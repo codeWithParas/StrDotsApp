@@ -1,7 +1,11 @@
 package com.xyz.strapp.presentation.logs
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +24,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
@@ -30,6 +36,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -39,16 +46,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -58,8 +64,6 @@ import coil.compose.AsyncImage
 import com.xyz.strapp.R
 import com.xyz.strapp.domain.model.AttendanceLogModel
 import com.xyz.strapp.domain.model.entity.FaceImageEntity
-//import com.xyz.strapp.presentation.logs.LogsPreviewData
-import com.xyz.strapp.ui.theme.StrAppTheme
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -68,6 +72,8 @@ import java.util.Locale
 fun LogsScreen(
     viewModel: LogsViewModel = hiltViewModel()
 ) {
+    val currentContext = LocalContext.current
+    val applicationContext = currentContext.applicationContext
     val uiState by viewModel.uiState.collectAsState()
     val selectedTab by viewModel.selectedTab.collectAsState()
     
@@ -100,28 +106,47 @@ fun LogsScreen(
                     SuccessState(logs = state.logs, isOffline = false)
                 }
                 is LogsUiState.PendingUploads -> {
-                    PendingUploadsState(pendingUploads = state.pendingUploads)
+                    PendingUploadsState(state.isUploading, pendingUploads = state.pendingUploads, startOfflineSync = {
+                        viewModel.uploadPendingLogs(context = applicationContext)
+                    })
                 }
                 is LogsUiState.Error -> {
                     ErrorState(message = state.message)
                 }
             }
-            
-            // Add refresh button
-            FloatingActionButton(
-                onClick = { 
-                    if (selectedTab == 0) {
-                        viewModel.loadLogs()
-                    } else {
-                        viewModel.loadPendingUploads()
-                    }
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(16.dp)
+
+            Row(modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
             ) {
-                Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                // Add refresh button
+                FloatingActionButton(
+                    onClick = {
+                        if (selectedTab == 0) {
+                            viewModel.loadLogs()
+                        } else {
+                            viewModel.loadPendingUploads()
+                        }
+                    },
+                ) {
+                    Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                }
+
+                /*if (selectedTab == 1){
+                    val isUploading = when (val state = uiState) {
+                        is LogsUiState.Success -> true
+                        is LogsUiState.PendingUploads -> state.isUploading
+                        else -> false
+                    }
+                    ProgressFloatingActionButton(
+                        modifier = Modifier.padding(start = 10.dp),
+                        isUploading = isUploading,
+                        hasUploadedSuccessfully = !isUploading,
+                        onClick = { viewModel.uploadPendingLogs(context = applicationContext) }
+                    )
+                }*/
             }
+
         }
     }
 }
@@ -439,19 +464,65 @@ fun EmptyPendingUploadsState() {
 }
 
 @Composable
-fun PendingUploadsState(pendingUploads: List<FaceImageEntity>) {
+fun PendingUploadsState(isUploading: Boolean, pendingUploads: List<FaceImageEntity>, startOfflineSync: () -> Unit) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(bottom = 6.dp, start = 16.dp, end = 16.dp, top = 8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Text(
-                text = stringResource(R.string.logs_pending_uploads),
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.padding(bottom = 16.dp)) {
+                    Text(
+                        text = stringResource(R.string.logs_pending_uploads),
+                        style = MaterialTheme.typography.headlineMedium,
+                        modifier = Modifier.padding(bottom = 5.dp)
+                    )
+                    Text(
+                        text = "Count : ${pendingUploads.size}",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(bottom = 5.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.weight(1f))
+
+                // Upload status indicator
+                Box(
+                    modifier = Modifier
+                        .background(
+                            color = Color(0xFFFF9800).copy(alpha = 0.1f),
+                            shape = RoundedCornerShape(4.dp)
+                        )
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                        .clickable(
+                            onClick = {
+                                startOfflineSync()
+                            }
+                        )
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if(isUploading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = Color(0xFFFF9800)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                        }
+                        Icon(
+                            imageVector = Icons.Default.Upload,
+                            contentDescription = null,
+                            tint = Color(0xFFFF9800),
+                            modifier = Modifier.padding(end = 4.dp)
+                        )
+                        Text(
+                            text = "Sync Offline Entries",
+                            color = Color(0xFFFF9800),
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+                }
+            }
         }
         
         items(pendingUploads) { upload ->
@@ -502,8 +573,9 @@ fun PendingUploadItem(upload: FaceImageEntity) {
                             tint = Color(0xFFFF9800),
                             modifier = Modifier.padding(end = 4.dp)
                         )
+
                         Text(
-                            text = stringResource(R.string.logs_pending),
+                            text = "Pending ${if(upload.isCheckIn) "CheckIn" else "CheckOut"}",
                             color = Color(0xFFFF9800),
                             style = MaterialTheme.typography.bodyMedium
                         )
@@ -575,6 +647,81 @@ fun PendingUploadItem(upload: FaceImageEntity) {
                         text = "${upload.imageData.size / 1024} KB",
                         style = MaterialTheme.typography.bodyMedium
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ProgressFloatingActionButton(
+    modifier: Modifier = Modifier,
+    isUploading: Boolean,
+    hasUploadedSuccessfully: Boolean, // New state for success indication
+    onClick: () -> Unit,
+    textIdle: String = "Upload",
+    textUploading: String = "Uploading...",
+    textSuccess: String = "Done"
+) {
+    // Using ExtendedFloatingActionButton for text + icon
+    ExtendedFloatingActionButton(
+        modifier = modifier,
+        onClick = {
+            if (!isUploading && !hasUploadedSuccessfully) { // Only allow click if not uploading or already successful
+                onClick()
+            }
+        },
+        containerColor = when {
+            hasUploadedSuccessfully -> MaterialTheme.colorScheme.tertiaryContainer
+            isUploading -> MaterialTheme.colorScheme.secondaryContainer
+            else -> MaterialTheme.colorScheme.primaryContainer
+        },
+        contentColor = when {
+            hasUploadedSuccessfully -> MaterialTheme.colorScheme.onTertiaryContainer
+            isUploading -> MaterialTheme.colorScheme.onSecondaryContainer
+            else -> MaterialTheme.colorScheme.onPrimaryContainer
+        }
+    ) {
+        // AnimatedContent to switch between states smoothly
+        AnimatedContent(
+            targetState = when {
+                hasUploadedSuccessfully -> "SUCCESS"
+                isUploading -> "UPLOADING"
+                else -> "IDLE"
+            },
+            transitionSpec = {
+                fadeIn() togetherWith fadeOut()
+            },
+            label = "fab_content_animation"
+        ) { targetState ->
+            when (targetState) {
+                "SUCCESS" -> {
+                    Icon(
+                        imageVector = Icons.Filled.Done,
+                        contentDescription = "Upload Successful",
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text(textSuccess)
+                }
+                "UPLOADING" -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.5.dp,
+                        strokeCap = StrokeCap.Round,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text(textUploading)
+                }
+                else -> { // IDLE
+                    Icon(
+                        imageVector = Icons.Filled.CloudUpload,
+                        contentDescription = "Start Upload",
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text(textIdle)
                 }
             }
         }

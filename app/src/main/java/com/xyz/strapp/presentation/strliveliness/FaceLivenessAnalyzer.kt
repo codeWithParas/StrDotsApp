@@ -235,6 +235,7 @@ class FaceLivenessAnalyzer(
         if (largestFace.trackingId != null) { // Only consider faces with tracking IDs
             if (!liveFaceCandidateReported || lastTrackedLiveFaceId != largestFace.trackingId) {
                 Log.d(TAG, "###@@@ Live face candidate detected (ID: ${largestFace.trackingId}). Signaling for countdown.")
+                Log.d(TAG, "###@@@ faceBitmap (ID: ${faceBitmap})")
                 onLiveFaceDetectedForCountdown(faceBitmap, resultsMap)
                 liveFaceCandidateReported = true
                 lastTrackedLiveFaceId = largestFace.trackingId
