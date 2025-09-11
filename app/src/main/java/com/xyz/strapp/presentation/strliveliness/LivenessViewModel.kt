@@ -20,7 +20,6 @@ import androidx.work.WorkManager
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.mlkit.vision.face.Face
 import com.xyz.strapp.domain.repository.FaceLivenessRepository
-import com.xyz.strapp.presentation.components.GlobalFeedbackViewModel
 import com.xyz.strapp.worker.ImageUploadWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -211,7 +210,7 @@ class LivenessViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 //Attempting to save image to repository.
-                val imageId = faceLivenessRepository.saveFaceImage(bitmapToSave)
+                val imageId = faceLivenessRepository.saveFaceImage(bitmapToSave, latitude, longitude)
                 if (imageId?.first != null) {
                     //enqueueImageUploadWorker()
                     val apiMessage = if(isCheckInFlow) {

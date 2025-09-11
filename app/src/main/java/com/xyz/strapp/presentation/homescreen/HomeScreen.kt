@@ -21,9 +21,6 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -31,7 +28,6 @@ import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -45,7 +41,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -85,8 +80,6 @@ fun HomeScreen(
     onNavigateToHome: () -> Unit = {},
     onNavigateToFavorites: () -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
-    onOpenDrawer: () -> Unit = {},
-    onSearchClicked: () -> Unit = {},
     onLogout: () -> Unit = {}
 ) {
     val scope = rememberCoroutineScope()
@@ -100,26 +93,11 @@ fun HomeScreen(
         BottomNavItem("Profile", Icons.Filled.AccountCircle, "Profile Screen")
     )
 
-    var showMenu by remember { mutableStateOf(false) } // For TopAppBar overflow menu
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text(bottomNavItems[selectedItemIndex].title) }, // Title changes with tab
-                navigationIcon = {
-                    IconButton(onClick = onOpenDrawer) { // Hook for nav drawer
-                        Icon(Icons.Filled.Menu, contentDescription = "Open Drawer")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onSearchClicked) {
-                        Icon(Icons.Filled.Search, contentDescription = "Search")
-                    }
-                    IconButton(onClick = { showMenu = !showMenu }) {
-                        Icon(Icons.Filled.MoreVert, contentDescription = "More options")
-                    }
-                    // Implement DropdownMenu for 'showMenu'
-                },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -133,12 +111,12 @@ fun HomeScreen(
                         selected = selectedItemIndex == index,
                         onClick = {
                             selectedItemIndex = index
-                                when (index) {
+                                /*when (index) {
                                     0 -> onNavigateToHome() // These could be used for actual NavController navigation
                                     1 -> onNavigateToFavorites()
                                     2 -> {} // Logs tab handled in the when statement above
                                     3 -> onNavigateToProfile()
-                                }
+                                }*/
                             Log.d("HomeScreen", "Selected: ${item.title}")
                         },
                         label = { Text(item.title) },
@@ -204,6 +182,7 @@ fun HomeTabContent(
                 Text("Fetching location...")
             }
             is LocationUiState.Success -> {
+                viewModel.setLocation(state.location.latitude.toFloat(), state.location.longitude.toFloat())
                 Text(modifier = Modifier.fillMaxWidth(), text = "You are at location : ", style = MaterialTheme.typography.headlineSmall)
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(state.location.address, style = MaterialTheme.typography.bodyMedium)
@@ -217,7 +196,7 @@ fun HomeTabContent(
 
         if (!locationPermissionsState.allPermissionsGranted) {
             LaunchedEffect(Unit) {
-                delay(2000)
+                delay(800)
                 locationPermissionsState.launchMultiplePermissionRequest()
             }
         } else if (locationState is LocationUiState.Error || locationState is LocationUiState.Idle) {

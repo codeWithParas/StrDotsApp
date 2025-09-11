@@ -17,16 +17,30 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBox
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.BusinessCenter
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -38,17 +52,21 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.exifinterface.media.ExifInterface
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.xyz.strapp.R
 import com.xyz.strapp.domain.model.ProfileResponse
+import com.xyz.strapp.presentation.homescreen.HomeViewModel
 import kotlinx.coroutines.launch
 import java.io.ByteArrayInputStream
 
@@ -91,7 +109,7 @@ fun ProfileScreen(
     }
 
     Surface(
-        color = Color.LightGray,
+        color = MaterialTheme.colorScheme.background,
         modifier = Modifier.fillMaxSize(),
     ) {
         // --- CHANGE 1: Handle different UI states ---
@@ -111,14 +129,43 @@ fun ProfileScreen(
                 // On error, you could show a retry button or an error message.
                 // For now, we'll show the error message. The Snackbar also appears.
                 Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                    Text(text = state.message)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = "Error loading profile",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = state.message,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             }
 
             is ProfileUiState.Loading, is ProfileUiState.Idle -> {
                 // Show a loading indicator while fetching data or in the initial state.
                 Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                    CircularProgressIndicator()
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator(
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Loading profile...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }
@@ -131,56 +178,77 @@ fun ProfileContent(profile: ProfileResponse,onLogout: () -> Unit, modifier: Modi
         modifier = modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .padding(10.dp),
+            .padding(0.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Pass the dynamic image data
         ImageCard(profile = profile, modifier = Modifier)
-        Spacer(modifier = Modifier.height(10.dp))
-
-        // Build the list of personal info
-        val personalInfo = listOf(
-            InfoItem("Name", profile.name ?: "N/A", Icons.Default.Person),
-            InfoItem("Email", profile.email ?: "N/A", Icons.Default.Email),
-            InfoItem("Phone", profile.mobileNo ?: "N/A", Icons.Default.Phone)
-        )
-
-
-        PersonalInfoCard(
-            cardTitle = "Personal Information",
-            infoList = personalInfo,
+        
+        Column(
             modifier = Modifier
-        )
-
-        Spacer(modifier = Modifier.height(10.dp))
-        val workInfo = listOf(
-            InfoItem("Circle", profile.circle ?: "N/A", Icons.Default.Person),
-            InfoItem("Division", profile.division ?: "N/A", Icons.Default.Email),
-            InfoItem("Range", profile.range ?: "N/A", Icons.Default.Phone),
-            InfoItem("Section", profile.section ?: "N/A", Icons.Default.Phone),
-            InfoItem("Beat", profile.beat ?: "N/A", Icons.Default.Phone),
-            InfoItem("Work Hours", "${profile.startTime} - ${profile.endTime}", Icons.Default.Phone),
-            InfoItem("Agency Name", profile.agencyName ?: "N/A", Icons.Default.Phone)
-        )
-
-        PersonalInfoCard(
-            cardTitle = "Work Information",
-            infoList = workInfo,
-            modifier = Modifier
-        )
-
-        Button(
-            modifier = Modifier.padding(10.dp).fillMaxWidth(),
-            onClick = {
-                onLogout()
-            }
+                .fillMaxWidth()
+                .padding(16.dp)
         ) {
-            Text(text = "Logout")
+            // Build the list of personal info
+            val personalInfo = listOf(
+                InfoItem("Name", profile.name ?: "N/A", Icons.Default.Person),
+                InfoItem("Email", profile.email ?: "N/A", Icons.Default.Email),
+                InfoItem("Phone", profile.mobileNo ?: "N/A", Icons.Default.Phone)
+            )
+
+            PersonalInfoCard(
+                cardTitle = "Personal Information",
+                infoList = personalInfo,
+                modifier = Modifier
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            val workInfo = listOf(
+                InfoItem("Circle", profile.circle ?: "N/A", Icons.Default.AccountBox),
+                InfoItem("Division", profile.division ?: "N/A", Icons.Default.Business),
+                InfoItem("Range", profile.range ?: "N/A", Icons.Default.LocationOn),
+                InfoItem("Section", profile.section ?: "N/A", Icons.Default.Work),
+                InfoItem("Beat", profile.beat ?: "N/A", Icons.Default.Badge),
+                InfoItem("Work Hours", "${profile.startTime} - ${profile.endTime}", Icons.Default.AccessTime),
+                InfoItem("Agency Name", profile.agencyName ?: "N/A", Icons.Default.BusinessCenter)
+            )
+
+            PersonalInfoCard(
+                cardTitle = "Work Information",
+                infoList = workInfo,
+                modifier = Modifier
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            Button(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                onClick = {
+                    onLogout()
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError
+                ),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Logout,
+                    contentDescription = null,
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+                Text(
+                    text = "Logout",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
         }
-
-
-        // You can add more cards here for other information
-        // Example: ContactInfoCard(...)
     }
 }
 
@@ -190,12 +258,22 @@ fun ImageCard(profile: ProfileResponse, modifier: Modifier){
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(color = Color.White, shape = RoundedCornerShape(6.dp))
-            .height(250.dp),
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.primary,
+                        MaterialTheme.colorScheme.primaryContainer
+                    )
+                ),
+                shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
+            )
+            .height(300.dp),
         contentAlignment = Alignment.Center,
     ){
         Column(
-            modifier = modifier.fillMaxWidth(),
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Only show the image if the data is not null or blank
@@ -203,27 +281,49 @@ fun ImageCard(profile: ProfileResponse, modifier: Modifier){
                 ProfileImage(base64Image = profile.image!!, modifier = Modifier)
             } else {
                 // Optional: Show a placeholder if there is no image
-                Image(
-                    painter = painterResource(id = R.drawable.ic_launcher_foreground), // Add a placeholder icon
-                    contentDescription = "No Profile Image",
+                Box(
                     modifier = Modifier
                         .size(120.dp)
                         .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = "No Profile Image",
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Text(
+                text = profile.name ?: "Unknown",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimary,
+                textAlign = TextAlign.Center
+            )
+            
+            Text(
+                text = profile.employeeType ?: "Employee",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
+                modifier = Modifier.padding(top = 4.dp)
+            )
+            
+            if (!profile.code.isNullOrBlank()) {
+                Text(
+                    text = "ID: ${profile.code}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
+                    modifier = Modifier.padding(top = 8.dp),
+                    fontWeight = FontWeight.Medium
                 )
             }
-            Text(
-                modifier = Modifier.padding(top = 10.dp),
-                style = MaterialTheme.typography.headlineMedium,
-                text = profile.name ?: ""
-            )
-            Text(
-                modifier = Modifier.padding(top = 5.dp),
-                text = profile.employeeType ?: "",
-                style = MaterialTheme.typography.bodyMedium
-                )
-            Text(modifier = Modifier.padding(top = 5.dp),text = profile.code ?: "")
         }
-
     }
 }
 
@@ -233,25 +333,38 @@ fun PersonalInfoCard(
     infoList: List<InfoItem>,
     modifier: Modifier = Modifier
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(color = Color.White, shape = RoundedCornerShape(6.dp))
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(8.dp)
     ) {
-        Column(modifier = modifier.fillMaxWidth()) {
+        Column(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+        ) {
             Text(
                 text = cardTitle,
-                color = Color(0xFF13467A),
                 style = MaterialTheme.typography.titleLarge,
-                modifier = modifier.padding(top = 10.dp, start = 10.dp, bottom = 6.dp)
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 16.dp)
             )
-            infoList.forEach { item ->
+            
+            infoList.forEachIndexed { index, item ->
                 InformationView(
                     title = item.key,
                     value = item.value,
                     icon = item.icon,
-                    modifier = modifier
+                    modifier = Modifier
                 )
+                
+                if (index < infoList.size - 1) {
+                    Divider(
+                        modifier = Modifier.padding(vertical = 8.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    )
+                }
             }
         }
     }
@@ -259,39 +372,42 @@ fun PersonalInfoCard(
 
 @Composable
 fun InformationView(title:String, value:String,icon: ImageVector, modifier: Modifier) {
-    Row(modifier = modifier.padding(10.dp)){
+    Row(
+        modifier = modifier.padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ){
         Box(
             modifier = Modifier
-                .size(50.dp)
+                .size(48.dp)
                 .clip(CircleShape)
-                .background(Color(0xFFD6EAF8)) // 👈 light blue background
-                .border(1.dp, Color.Transparent, CircleShape),
+                .background(MaterialTheme.colorScheme.primaryContainer),
             contentAlignment = Alignment.Center
         ) {
-            Image(
+            Icon(
                 imageVector = icon,
-                contentDescription = "Profile Icon",
-                modifier = Modifier.size(28.dp), // keep padding inside
-                contentScale = ContentScale.Fit
+                contentDescription = "$title Icon",
+                modifier = Modifier.size(24.dp),
+                tint = MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
+        
+        Spacer(modifier = Modifier.width(16.dp))
+        
         Column(
-            modifier = modifier
-                .height(50.dp)
-                .fillMaxWidth()
-                .padding(start = 10.dp),
-            horizontalAlignment = Alignment.Start,
-            verticalArrangement = Arrangement.SpaceEvenly
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             Text(
                 text = title,
-                color = Color.Gray,
-                style = MaterialTheme.typography.bodySmall
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Medium
             )
             Text(
                 text = value,
-                color = Color.Black,
-                style = MaterialTheme.typography.bodyMedium
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Normal
             )
         }
     }
@@ -352,7 +468,11 @@ fun ProfileImage(
         modifier = modifier
             .size(120.dp)
             .clip(CircleShape)
-            .border(2.dp, Color(0xFFD6EAF8), CircleShape),
+            .border(
+                width = 4.dp, 
+                color = MaterialTheme.colorScheme.surface,
+                shape = CircleShape
+            ),
         contentScale = ContentScale.Crop
     )
 }
