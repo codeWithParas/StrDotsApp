@@ -44,6 +44,12 @@ class ProfileViewModel @Inject constructor(
 
     }
 
+    fun setLanguage(language:String){
+        viewModelScope.launch {
+            loginRepository.setPreferredLanguage(language)
+        }
+    }
+
     suspend fun Logout(){
         loginRepository.clearAllUserData()
     }

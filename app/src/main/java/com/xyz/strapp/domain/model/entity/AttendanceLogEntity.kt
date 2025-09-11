@@ -26,6 +26,9 @@ data class AttendanceLogEntity(
     
     @ColumnInfo(name = "message")
     val message: String,
+
+    @ColumnInfo(name = "imagePath")
+    val imagePath: String,
     
     @ColumnInfo(name = "action")
     val action: String,

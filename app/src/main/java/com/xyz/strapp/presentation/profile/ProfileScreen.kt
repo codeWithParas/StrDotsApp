@@ -1,12 +1,7 @@
 package com.xyz.strapp.presentation.profile
 
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.Matrix
-import android.util.Base64
-import androidx.compose.foundation.Image
+import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -53,22 +48,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.exifinterface.media.ExifInterface
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
 import com.xyz.strapp.R
 import com.xyz.strapp.domain.model.ProfileResponse
-import com.xyz.strapp.presentation.homescreen.HomeViewModel
+import com.xyz.strapp.utils.restartApp
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.io.ByteArrayInputStream
 
 @Preview
 @Composable
@@ -86,23 +80,11 @@ fun ProfileScreen(
     profileViewModel: ProfileViewModel = hiltViewModel(),
     onLogout: () -> Unit,
 ){
+    val onLanguageSelected = { lang : String ->
+
+    }
     val profileUIState by profileViewModel.profileUiState.collectAsState()
     val scope = rememberCoroutineScope()
-//    val snackbarHostState = remember { SnackbarHostState() }
-
-//    LaunchedEffect(profileUIState) {
-//        if (profileUIState is ProfileUiState.Error) {
-//            val errorState = profileUIState as ProfileUiState.Error
-//            scope.launch {
-//                snackbarHostState.showSnackbar(
-//                    message = "Failed to fetch profile: ${errorState.message}",
-//                    duration = androidx.compose.material3.SnackbarDuration.Long
-//                )
-//            }
-//            // Optionally reset state in ViewModel to allow retry
-//            profileViewModel.resetState()
-//        }
-//    }
 
     LaunchedEffect(key1 = Unit) {
         profileViewModel.loadProfile()
@@ -134,7 +116,7 @@ fun ProfileScreen(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = "Error loading profile",
+                            text = stringResource(R.string.profile_error_loading_profile),
                             style = MaterialTheme.typography.titleLarge,
                             color = MaterialTheme.colorScheme.error
                         )
@@ -161,7 +143,7 @@ fun ProfileScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "Loading profile...",
+                            text = stringResource(R.string.profile_loading_profile),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -173,7 +155,12 @@ fun ProfileScreen(
 }
 
 @Composable
-fun ProfileContent(profile: ProfileResponse,onLogout: () -> Unit, modifier: Modifier = Modifier) {
+fun ProfileContent(
+    profile: ProfileResponse,onLogout: () -> Unit,
+    modifier: Modifier = Modifier,
+    profileViewModel: ProfileViewModel = hiltViewModel()) {
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -191,13 +178,13 @@ fun ProfileContent(profile: ProfileResponse,onLogout: () -> Unit, modifier: Modi
         ) {
             // Build the list of personal info
             val personalInfo = listOf(
-                InfoItem("Name", profile.name ?: "N/A", Icons.Default.Person),
-                InfoItem("Email", profile.email ?: "N/A", Icons.Default.Email),
-                InfoItem("Phone", profile.mobileNo ?: "N/A", Icons.Default.Phone)
+                InfoItem(stringResource(R.string.profile_name), profile.name ?: "N/A", Icons.Default.Person),
+                InfoItem(stringResource(R.string.profile_email), profile.email ?: "N/A", Icons.Default.Email),
+                InfoItem(stringResource(R.string.profile_phone), profile.mobileNo ?: "N/A", Icons.Default.Phone)
             )
 
             PersonalInfoCard(
-                cardTitle = "Personal Information",
+                cardTitle = stringResource(R.string.profile_personal_information),
                 infoList = personalInfo,
                 modifier = Modifier
             )
@@ -205,23 +192,42 @@ fun ProfileContent(profile: ProfileResponse,onLogout: () -> Unit, modifier: Modi
             Spacer(modifier = Modifier.height(16.dp))
             
             val workInfo = listOf(
-                InfoItem("Circle", profile.circle ?: "N/A", Icons.Default.AccountBox),
-                InfoItem("Division", profile.division ?: "N/A", Icons.Default.Business),
-                InfoItem("Range", profile.range ?: "N/A", Icons.Default.LocationOn),
-                InfoItem("Section", profile.section ?: "N/A", Icons.Default.Work),
-                InfoItem("Beat", profile.beat ?: "N/A", Icons.Default.Badge),
-                InfoItem("Work Hours", "${profile.startTime} - ${profile.endTime}", Icons.Default.AccessTime),
-                InfoItem("Agency Name", profile.agencyName ?: "N/A", Icons.Default.BusinessCenter)
+                InfoItem(stringResource(R.string.profile_circle), profile.circle ?: "N/A", Icons.Default.AccountBox),
+                InfoItem(stringResource(R.string.profile_division), profile.division ?: "N/A", Icons.Default.Business),
+                InfoItem(stringResource(R.string.profile_range), profile.range ?: "N/A", Icons.Default.LocationOn),
+                InfoItem(stringResource(R.string.profile_section), profile.section ?: "N/A", Icons.Default.Work),
+                InfoItem(stringResource(R.string.profile_beat), profile.beat ?: "N/A", Icons.Default.Badge),
+                InfoItem(stringResource(R.string.profile_work_hours), "${profile.startTime} - ${profile.endTime}", Icons.Default.AccessTime),
+                InfoItem(stringResource(R.string.profile_agency_name), profile.agencyName ?: "N/A", Icons.Default.BusinessCenter)
             )
 
             PersonalInfoCard(
-                cardTitle = "Work Information",
+                cardTitle = stringResource(R.string.profile_work_information),
                 infoList = workInfo,
                 modifier = Modifier
             )
 
+            Spacer(modifier = Modifier.height(16.dp))
+
+            LanguageCard(
+                modifier = Modifier,
+                onLanguageSelected = { lang ->
+                    scope.launch {
+                        profileViewModel.setLanguage(lang)
+                        delay(1000)
+                        restartApp(context)
+                    }
+                    val language = if(lang == "en"){
+                        "English"
+                    } else {
+                        "Tamil"
+                    }
+                    Toast.makeText(context, "Please wait, updating Language to $language", Toast.LENGTH_SHORT).show()
+                }
+            )
+
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             Button(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -241,12 +247,12 @@ fun ProfileContent(profile: ProfileResponse,onLogout: () -> Unit, modifier: Modi
                     modifier = Modifier.padding(end = 8.dp)
                 )
                 Text(
-                    text = "Logout",
+                    text = stringResource(R.string.profile_logout),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
@@ -278,7 +284,7 @@ fun ImageCard(profile: ProfileResponse, modifier: Modifier){
         ) {
             // Only show the image if the data is not null or blank
             if ((profile.image ?: "").isNotBlank()) {
-                ProfileImage(base64Image = profile.image!!, modifier = Modifier)
+                ProfileImage(imagePath = profile.image!!, modifier = Modifier)
             } else {
                 // Optional: Show a placeholder if there is no image
                 Box(
@@ -296,24 +302,24 @@ fun ImageCard(profile: ProfileResponse, modifier: Modifier){
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             Text(
-                text = profile.name ?: "Unknown",
+                text = profile.name ?: stringResource(R.string.profile_unknown),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onPrimary,
                 textAlign = TextAlign.Center
             )
-            
+
             Text(
-                text = profile.employeeType ?: "Employee",
+                text = profile.employeeType ?: stringResource(R.string.profile_employee),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
                 modifier = Modifier.padding(top = 4.dp)
             )
-            
+
             if (!profile.code.isNullOrBlank()) {
                 Text(
                     text = "ID: ${profile.code}",
@@ -350,7 +356,7 @@ fun PersonalInfoCard(
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
-            
+
             infoList.forEachIndexed { index, item ->
                 InformationView(
                     title = item.key,
@@ -358,7 +364,7 @@ fun PersonalInfoCard(
                     icon = item.icon,
                     modifier = Modifier
                 )
-                
+
                 if (index < infoList.size - 1) {
                     Divider(
                         modifier = Modifier.padding(vertical = 8.dp),
@@ -390,9 +396,9 @@ fun InformationView(title:String, value:String,icon: ImageVector, modifier: Modi
                 tint = MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
-        
+
         Spacer(modifier = Modifier.width(16.dp))
-        
+
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(2.dp)
@@ -412,67 +418,64 @@ fun InformationView(title:String, value:String,icon: ImageVector, modifier: Modi
         }
     }
 }
+
+@Composable
+fun LanguageCard(
+    modifier: Modifier = Modifier,
+    onLanguageSelected: (String) -> Unit
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+        ) {
+            Text(
+                text = "Language",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Button(
+                    onClick = { onLanguageSelected("en") },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("English")
+                }
+                Button(
+                    onClick = { onLanguageSelected("ta") },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Tamil")
+                }
+            }
+        }
+    }
+}
+
 @Composable
 fun ProfileImage(
-    base64Image: String,
-    modifier: Modifier = Modifier,
-    maxDimension: Int = 400, // max width/height to prevent memory issues
-    fallbackRotation: Float = 0f
+    imagePath: String,
+    modifier: Modifier = Modifier
 ) {
-
-    val imageBytes = Base64.decode(base64Image, Base64.DEFAULT)
-
-    // Decode only bounds first to calculate scaling
-    val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-    BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size, options)
-
-    // Calculate scale factor
-    var scale = 1
-    val maxDim = maxOf(options.outWidth, options.outHeight)
-    if (maxDim > maxDimension) {
-        scale = maxDim / maxDimension
-    }
-
-    // Decode bitmap with scaling
-    val bitmapOptions = BitmapFactory.Options().apply { inSampleSize = scale }
-    var bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size, bitmapOptions)
-
-    // Fix rotation using EXIF if available
-    try {
-        val exif = ExifInterface(ByteArrayInputStream(imageBytes))
-        val orientation = exif.getAttributeInt(
-            ExifInterface.TAG_ORIENTATION,
-            ExifInterface.ORIENTATION_NORMAL
-        )
-        val matrix = Matrix()
-        when (orientation) {
-            ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
-            ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
-            ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
-        }
-        if (!matrix.isIdentity) {
-            bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
-        } else if (fallbackRotation != 0f) {
-            val fallbackMatrix = Matrix().apply { postRotate(fallbackRotation) }
-            bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, fallbackMatrix, true)
-        }
-    } catch (_: Exception) {
-        if (fallbackRotation != 0f) {
-            val fallbackMatrix = Matrix().apply { postRotate(fallbackRotation) }
-            bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, fallbackMatrix, true)
-        }
-    }
-    Image(
-        bitmap = bitmap.asImageBitmap(),
-        contentDescription = "Profile Image",
-        modifier = modifier
+    AsyncImage(
+        model = imagePath,
+        contentDescription = "Sample image",
+        modifier = Modifier
             .size(120.dp)
-            .clip(CircleShape)
-            .border(
-                width = 4.dp, 
-                color = MaterialTheme.colorScheme.surface,
-                shape = CircleShape
-            ),
+            .clip(CircleShape),
         contentScale = ContentScale.Crop
     )
 }

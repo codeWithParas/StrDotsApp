@@ -1,7 +1,9 @@
 package com.xyz.strapp.presentation.userlogin
 
+import android.annotation.SuppressLint
 import android.util.Log
 import android.util.Patterns
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -44,6 +46,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -51,18 +54,19 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.os.LocaleListCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.xyz.strapp.R
 import com.xyz.strapp.ui.theme.StrAppTheme
 import kotlinx.coroutines.launch
 
+@SuppressLint("LocalContextConfigurationRead")
 @Composable
 fun LoginScreen(
     loginViewModel: LoginViewModel = hiltViewModel(),
     onLoginSuccess: () -> Unit, // Callback for successful login & navigation
     onNavigateToRegister: () -> Unit // Callback for navigating to registration
 ) {
-    //SetupSystemUiController(isNavigationBarContrastEnforced = false)
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -127,7 +131,7 @@ fun LoginScreen(
                 Title(modifier = Modifier)
                 Spacer(modifier = Modifier.height(64.dp))
                 Text(
-                    text = "Login",
+                    text = stringResource(R.string.login_login),
                     color = Color.White,
                     fontSize = 30.sp,
                     style = MaterialTheme.typography.headlineMedium
@@ -137,8 +141,10 @@ fun LoginScreen(
                 TextField(
 
                     value = phoneNumber,
-                    onValueChange = { loginViewModel.onPhoneChange(it)  },
-                    label = { Text("Phone") },
+                    onValueChange = {  if (it.length <= 10 && it.all { it.isDigit() }) {
+                        loginViewModel.onPhoneChange(it)
+                    }},
+                    label = { Text(stringResource(R.string.login_phone)) },
                     singleLine = true,
                     shape = RoundedCornerShape(10.dp),
                     isError = phoneNumber.isNotEmpty() && !isPhoneValid,
@@ -151,16 +157,17 @@ fun LoginScreen(
                     },
                     enabled = loginUiState !is LoginUiState.Loading, // Disable when loading
                     modifier = Modifier
-                        .height(62.dp).fillMaxWidth()
+                        .height(62.dp)
+                        .fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(20.dp))
                 TextField(
                     value = password,
                     onValueChange = { loginViewModel.onPasswordChange(it) },
-                    label = { Text("Password") },
+                    label = { Text(stringResource(R.string.login_password)) },
                     singleLine = true,
                     shape = RoundedCornerShape(10.dp),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     leadingIcon = {
                         Icon(
@@ -179,7 +186,8 @@ fun LoginScreen(
                     },
                     enabled = loginUiState !is LoginUiState.Loading, // disabled when loading
                     modifier = Modifier
-                        .height(62.dp).fillMaxWidth()
+                        .height(62.dp)
+                        .fillMaxWidth()
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -203,10 +211,11 @@ fun LoginScreen(
                             ),
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier
-                                .height(62.dp).fillMaxWidth()
+                                .height(62.dp)
+                                .fillMaxWidth()
                         ) {
                             Text(
-                                text = "Continue",
+                                text = stringResource(R.string.login_continue),
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -250,7 +259,7 @@ fun Title(modifier: Modifier){
                 .padding(16.dp)
         )
         Text(
-            text = "Sign in to manage your attendance",
+            text = stringResource(R.string.login_sign_in_to_manage_your_attendance),
             color = Color.White,
             modifier = modifier
                 .padding(16.dp)

@@ -87,7 +87,7 @@ interface ApiService {
      * @param authToken The authentication token
      * @return A Retrofit Response wrapping an AttendanceLogsResponse
      */
-    @GET("api/AttendanceRegister/GetLogs")
+    @GET("api/AttendanceRegister/GetLogsTest?page=1")
     suspend fun getAttendanceLogs(
         @Header("Authorization") authToken: String
     ): Response<AttendanceLogsResponse>

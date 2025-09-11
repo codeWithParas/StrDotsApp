@@ -1,24 +1,30 @@
 package com.xyz.strapp.presentation.navigation
 
 import android.util.Log
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
+import androidx.core.os.LocaleListCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.xyz.strapp.presentation.LanguageScreen.LanguageScreen
 import com.xyz.strapp.presentation.StartScreen
 import com.xyz.strapp.presentation.components.GlobalFeedbackViewModel
 import com.xyz.strapp.presentation.components.SuccessMessageDialog
 import com.xyz.strapp.presentation.homescreen.HomeScreen
 import com.xyz.strapp.presentation.strliveliness.LivelinessScreen
 import com.xyz.strapp.presentation.userlogin.LoginScreen
+import com.xyz.strapp.utils.restartApp
+import kotlinx.coroutines.delay
 
 @Composable
 fun Navigation(
@@ -28,12 +34,20 @@ fun Navigation(
 ) {
 
     val isUserLoggedIn by authStatusViewModel.isUserLoggedIn.collectAsState()
+    val isLanguageSelected by authStatusViewModel.isLanguageSelected.collectAsState()
     val isLoading by authStatusViewModel.isLoading.collectAsState()
 
     NavHost(navController = navController, startDestination = Screen.StartScreen.route) {
         composable(Screen.StartScreen.route) {
             StartScreen(nextScreen = {
                 when {
+                    isLanguageSelected == false -> {
+                        navController.navigate(Screen.LanguageScreen.route) {
+                            popUpTo(Screen.StartScreen.route) {
+                                inclusive = true
+                            }
+                        }
+                    }
                     isUserLoggedIn == true -> {
                         navController.navigate(Screen.HomeScreen.route) {
                             popUpTo(Screen.LoginScreen.route) {
@@ -54,6 +68,11 @@ fun Navigation(
                         }
                     }
                 }
+            })
+        }
+        composable(Screen.LanguageScreen.route) {
+            LanguageScreen(onLanguageSelection = { languageCode ->
+                authStatusViewModel.setLanguage(languageCode)
             })
         }
         composable(Screen.LoginScreen.route) {
@@ -110,6 +129,7 @@ fun Navigation(
 sealed class Screen(val route: String) {
     object StartScreen : Screen("splash_screen")
     object LoginScreen : Screen("login_screen")
+    object  LanguageScreen : Screen(route = "language_screen")
     object RegisterScreen : Screen("register_screen")
     object HomeScreen : Screen("home_screen")
     object ProfileScreen : Screen("profile_screen")
