@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Home
@@ -61,6 +62,7 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.xyz.strapp.R
 import com.xyz.strapp.presentation.logs.LogsScreen
 import com.xyz.strapp.presentation.profile.ProfileScreen
+import com.xyz.strapp.presentation.tasks.TasksScreen
 import com.xyz.strapp.presentation.userlogin.LoginViewModel
 import com.xyz.strapp.ui.theme.StrAppTheme
 import kotlinx.coroutines.delay
@@ -94,6 +96,7 @@ fun HomeScreen(
         BottomNavItem(stringResource(R.string.home_home), Icons.Filled.Home, "Home Screen"),
         BottomNavItem(stringResource(R.string.home_dashboard), Icons.Filled.Dashboard, "Dashboard Screen"),
         BottomNavItem(stringResource(R.string.home_history), Icons.Filled.History, "Logs Screen"),
+        BottomNavItem(stringResource(R.string.home_tasks), Icons.AutoMirrored.Filled.Assignment, "Tasks Screen"),
         BottomNavItem(stringResource(R.string.home_profile), Icons.Filled.AccountCircle, "Profile Screen")
     )
 
@@ -136,7 +139,8 @@ fun HomeScreen(
                 0 -> HomeTabContent(viewModel, onNavigateToFaceLiveness)
                 1 -> FavoritesTabContent()
                 2 -> LogsTabContent()
-                3 -> ProfileTabContent(onLogout = { onLogout() }, onNavigateToFaceUpload={onNavigateToFaceUpload()}) // Pass ViewModel if needed
+                3 -> TasksTabContent()
+                4 -> ProfileTabContent(onLogout = { onLogout() }, onNavigateToFaceUpload={onNavigateToFaceUpload()}) // Pass ViewModel if needed
             }
         }
     }
@@ -365,6 +369,11 @@ fun WebViewScreen(
 @Composable
 fun LogsTabContent() {
     LogsScreen()
+}
+
+@Composable
+fun TasksTabContent() {
+    TasksScreen()
 }
 
 @Composable

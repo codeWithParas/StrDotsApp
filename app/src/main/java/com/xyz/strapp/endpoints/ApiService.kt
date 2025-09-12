@@ -5,6 +5,7 @@ import com.xyz.strapp.domain.model.AttendanceLogsResponse
 import com.xyz.strapp.domain.model.LoginRequest
 import com.xyz.strapp.domain.model.LoginResponse
 import com.xyz.strapp.domain.model.ProfileResponse
+import com.xyz.strapp.domain.model.TaskModel
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.Response
@@ -103,6 +104,13 @@ interface ApiService {
     suspend fun getAttendanceLogs(
         @Header("Authorization") authToken: String
     ): Response<AttendanceLogsResponse>
+
+    /**
+     * Fetches all tasks for the current user
+     * @return A Retrofit Response wrapping a List of TaskModel
+     */
+    @GET("api/Tasks/GetAllTask")
+    suspend fun getAllTasks(): Response<List<TaskModel>>
 }
 
 /**

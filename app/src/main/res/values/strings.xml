@@ -46,4 +46,12 @@
     <string name="login_continue">Continue</string>
     <string name="login_sign_in_to_manage_your_attendance">Sign in to manage your attendance</string>
     <string name="login_password">Password</string>
+    <string name="home_tasks">Tasks</string>
+    <string name="tasks_title">Tasks</string>
+    <string name="tasks_loading">Loading tasks...</string>
+    <string name="tasks_error_loading">Error loading tasks</string>
+    <string name="tasks_no_tasks">No tasks available</string>
+    <string name="tasks_task_name">Task Name</string>
+    <string name="tasks_created_date">Created Date</string>
+    <string name="tasks_user_id">User ID</string>
 </resources>
