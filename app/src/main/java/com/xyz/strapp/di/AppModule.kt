@@ -17,6 +17,7 @@ import com.xyz.strapp.domain.model.auth.MyTokenProvider
 import com.xyz.strapp.domain.repository.AttendanceLogsRepository
 import com.xyz.strapp.domain.repository.FaceLivenessRepository
 import com.xyz.strapp.endpoints.ApiService
+import com.xyz.strapp.presentation.components.GlobalFeedbackViewModel
 import com.xyz.strapp.utils.NetworkUtils
 import com.xyz.strapp.utils.Utils.DATABASE_NAME
 import dagger.Module
@@ -172,10 +173,9 @@ object AppModule {
     fun provideFaceLivenessRepository(
         faceImageDao: FaceImageDao,
         apiService: ApiService,
-        tokenProvider: MyTokenProvider,
         networkUtils: NetworkUtils,
     ): FaceLivenessRepository {
-        return FaceLivenessRepository(faceImageDao, apiService, tokenProvider.getToken(), networkUtils)// , faceApiService )
+        return FaceLivenessRepository(faceImageDao, apiService, networkUtils)// , faceApiService )
     }
     
     /**
@@ -190,6 +190,15 @@ object AppModule {
     ): AttendanceLogsRepository {
         return AttendanceLogsRepository(apiService, networkUtils, attendanceLogDao)
     }
+
+    /**
+     * Provides the repository for global status feedback.
+     */
+    /*@Singleton
+    @Provides
+    fun provideGlobalFeedbackStatus(): GlobalFeedbackViewModel {
+        return GlobalFeedbackViewModel()
+    }*/
 
     @Provides
     @Singleton
