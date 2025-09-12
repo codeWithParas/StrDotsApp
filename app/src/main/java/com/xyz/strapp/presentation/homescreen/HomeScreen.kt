@@ -64,6 +64,7 @@ import com.xyz.strapp.presentation.profile.ProfileScreen
 import com.xyz.strapp.presentation.userlogin.LoginViewModel
 import com.xyz.strapp.ui.theme.StrAppTheme
 import kotlinx.coroutines.delay
+import kotlin.Unit
 
 // Data class for Bottom Navigation items (already defined, ensure it's accessible)
 data class BottomNavItem(
@@ -81,7 +82,9 @@ fun HomeScreen(
     onNavigateToHome: () -> Unit = {},
     onNavigateToFavorites: () -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
-    onLogout: () -> Unit = {}
+    onLogout: () -> Unit = {},
+    onNavigateToFaceUpload: () -> Unit,
+
 ) {
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -133,7 +136,7 @@ fun HomeScreen(
                 0 -> HomeTabContent(viewModel, onNavigateToFaceLiveness)
                 1 -> FavoritesTabContent()
                 2 -> LogsTabContent()
-                3 -> ProfileTabContent(onLogout = { onLogout() }) // Pass ViewModel if needed
+                3 -> ProfileTabContent(onLogout = { onLogout() }, onNavigateToFaceUpload={onNavigateToFaceUpload()}) // Pass ViewModel if needed
             }
         }
     }
@@ -365,8 +368,11 @@ fun LogsTabContent() {
 }
 
 @Composable
-fun ProfileTabContent(onLogout: () -> Unit) {
-    ProfileScreen( onLogout = {onLogout()})
+fun ProfileTabContent(
+    onLogout: () -> Unit,
+    onNavigateToFaceUpload: () -> Unit
+) {
+    ProfileScreen( onLogout = {onLogout()}, onNavigateToFaceUpload = {onNavigateToFaceUpload()})
 }
 
 

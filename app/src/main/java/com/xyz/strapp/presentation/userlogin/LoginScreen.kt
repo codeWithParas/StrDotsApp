@@ -3,7 +3,6 @@ package com.xyz.strapp.presentation.userlogin
 import android.annotation.SuppressLint
 import android.util.Log
 import android.util.Patterns
-import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -54,7 +53,6 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.os.LocaleListCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.xyz.strapp.R
 import com.xyz.strapp.ui.theme.StrAppTheme
