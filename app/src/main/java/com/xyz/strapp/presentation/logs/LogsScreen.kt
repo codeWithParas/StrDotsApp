@@ -1,11 +1,12 @@
 package com.xyz.strapp.presentation.logs
 
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,7 +33,9 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.SignalWifiOff
 import androidx.compose.material.icons.filled.Upload
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -44,18 +47,22 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -66,19 +73,23 @@ import coil.compose.AsyncImage
 import com.xyz.strapp.R
 import com.xyz.strapp.domain.model.AttendanceLogModel
 import com.xyz.strapp.domain.model.entity.FaceImageEntity
+import com.xyz.strapp.presentation.components.GlobalFeedbackViewModel
+import com.xyz.strapp.presentation.components.GlobalSuccessDialogContent
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 @Composable
 fun LogsScreen(
-    viewModel: LogsViewModel = hiltViewModel()
+    viewModel: LogsViewModel = hiltViewModel(),
+    globalFeedbackViewModel: GlobalFeedbackViewModel = hiltViewModel(viewModelStoreOwner = LocalActivity.current as ComponentActivity),
 ) {
     val currentContext = LocalContext.current
     val applicationContext = currentContext.applicationContext
     val uiState by viewModel.uiState.collectAsState()
     val selectedTab by viewModel.selectedTab.collectAsState()
-    
+    val isOnline by viewModel.isOnline.collectAsState()
+
     Column(modifier = Modifier.fillMaxSize()) {
         TabRow(selectedTabIndex = selectedTab) {
             Tab(
@@ -109,7 +120,15 @@ fun LogsScreen(
                 }
                 is LogsUiState.PendingUploads -> {
                     PendingUploadsState(state.isUploading, pendingUploads = state.pendingUploads, startOfflineSync = {
-                        viewModel.uploadPendingLogs(context = applicationContext)
+                        if(isOnline) {
+                            viewModel.uploadPendingLogs(context = applicationContext)
+                        } else {
+                            globalFeedbackViewModel.showNoInternetMsgDialog(GlobalSuccessDialogContent(
+                                title = "No Internet",
+                                message = "Please check your internet connection and try again. Sync won't work in offline mode.",
+                                icon = Icons.Default.SignalWifiOff
+                            ))
+                        }
                     })
                 }
                 is LogsUiState.Error -> {
@@ -133,22 +152,7 @@ fun LogsScreen(
                 ) {
                     Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                 }
-
-                /*if (selectedTab == 1){
-                    val isUploading = when (val state = uiState) {
-                        is LogsUiState.Success -> true
-                        is LogsUiState.PendingUploads -> state.isUploading
-                        else -> false
-                    }
-                    ProgressFloatingActionButton(
-                        modifier = Modifier.padding(start = 10.dp),
-                        isUploading = isUploading,
-                        hasUploadedSuccessfully = !isUploading,
-                        onClick = { viewModel.uploadPendingLogs(context = applicationContext) }
-                    )
-                }*/
             }
-
         }
     }
 }
@@ -243,13 +247,13 @@ fun SuccessState(logs: List<AttendanceLogModel>, isOffline: Boolean = false) {
         }
         
         items(logs) { log ->
-            AttendanceLogItem(log = log)
+            AttendanceLogItem(log = log, imageData = null, isUploading = false)
         }
     }
 }
 
 @Composable
-fun AttendanceLogItem(log: AttendanceLogModel) {
+fun AttendanceLogItem(log: AttendanceLogModel, imageData: ByteArray?, isUploading: Boolean) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -301,6 +305,27 @@ fun AttendanceLogItem(log: AttendanceLogModel) {
                             color = actionColor,
                             style = MaterialTheme.typography.bodyMedium
                         )
+                        imageData?.let {
+                            when {
+                                it.isNotEmpty() && isUploading -> {
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        color = Color(0xFFFF9800)
+                                    )
+                                }
+                                it.isNotEmpty() && !isUploading -> {
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = " Last Sync Failed",
+                                        color = Color.Red,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
+                                else -> {
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -311,7 +336,7 @@ fun AttendanceLogItem(log: AttendanceLogModel) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 AsyncImage(
-                    model = log.imagePath, // your image URL
+                    model = imageData ?: log.imagePath, // your image URL
                     contentDescription = "Sample image",
                     modifier = Modifier
                         .size(75.dp)
@@ -466,7 +491,11 @@ fun EmptyPendingUploadsState() {
 }
 
 @Composable
-fun PendingUploadsState(isUploading: Boolean, pendingUploads: List<FaceImageEntity>, startOfflineSync: () -> Unit) {
+fun PendingUploadsState(
+    isUploading: Boolean,
+    pendingUploads: List<FaceImageEntity>,
+    startOfflineSync: () -> Unit
+) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -492,16 +521,15 @@ fun PendingUploadsState(isUploading: Boolean, pendingUploads: List<FaceImageEnti
                 // Upload status indicator
                 Box(
                     modifier = Modifier
+                        .shadow(elevation = 1.dp)
                         .background(
                             color = Color(0xFFFF9800).copy(alpha = 0.1f),
-                            shape = RoundedCornerShape(4.dp)
+                            shape = RoundedCornerShape(4.dp),
                         )
                         .padding(horizontal = 8.dp, vertical = 4.dp)
-                        .clickable(
-                            onClick = {
-                                startOfflineSync()
-                            }
-                        )
+                        .clickable(onClick = {
+                            startOfflineSync()
+                        })
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if(isUploading) {
@@ -518,7 +546,7 @@ fun PendingUploadsState(isUploading: Boolean, pendingUploads: List<FaceImageEnti
                             modifier = Modifier.padding(end = 4.dp)
                         )
                         Text(
-                            text = "Sync Offline Entries",
+                            text = "Sync Entries",
                             color = Color(0xFFFF9800),
                             style = MaterialTheme.typography.titleMedium
                         )
@@ -528,204 +556,18 @@ fun PendingUploadsState(isUploading: Boolean, pendingUploads: List<FaceImageEnti
         }
         
         items(pendingUploads) { upload ->
-            PendingUploadItem(upload = upload)
-        }
-    }
-}
-
-@Composable
-fun PendingUploadItem(upload: FaceImageEntity) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(8.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            // Date with calendar icon
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.CalendarToday,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = formatTimestamp(upload.timestamp),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(start = 8.dp)
-                )
-                
-                Spacer(modifier = Modifier.weight(1f))
-                
-                // Upload status indicator
-                Box(
-                    modifier = Modifier
-                        .background(
-                            color = Color(0xFFFF9800).copy(alpha = 0.1f),
-                            shape = RoundedCornerShape(4.dp)
-                        )
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Upload,
-                            contentDescription = null,
-                            tint = Color(0xFFFF9800),
-                            modifier = Modifier.padding(end = 4.dp)
-                        )
-
-                        Text(
-                            text = "Pending ${if(upload.isCheckIn) "CheckIn" else "CheckOut"}",
-                            color = Color(0xFFFF9800),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                }
-            }
-            
-            Divider(modifier = Modifier.padding(vertical = 8.dp))
-            
-            // Image ID
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(end = 8.dp)
-                )
-                Column {
-                    Text(
-                        text = "Image ID",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "#${upload.id}",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-            
-            // Time
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.Schedule,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(end = 8.dp)
-                )
-                Column {
-                    Text(
-                        text = stringResource(R.string.logs_time),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = formatTime(upload.timestamp),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-            
-            // Image size
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.LocationOn,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(end = 8.dp)
-                )
-                Column {
-                    Text(
-                        text = stringResource(R.string.logs_image_size),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "${upload.imageData.size / 1024} KB",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun ProgressFloatingActionButton(
-    modifier: Modifier = Modifier,
-    isUploading: Boolean,
-    hasUploadedSuccessfully: Boolean, // New state for success indication
-    onClick: () -> Unit,
-    textIdle: String = "Upload",
-    textUploading: String = "Uploading...",
-    textSuccess: String = "Done"
-) {
-    // Using ExtendedFloatingActionButton for text + icon
-    ExtendedFloatingActionButton(
-        modifier = modifier,
-        onClick = {
-            if (!isUploading && !hasUploadedSuccessfully) { // Only allow click if not uploading or already successful
-                onClick()
-            }
-        },
-        containerColor = when {
-            hasUploadedSuccessfully -> MaterialTheme.colorScheme.tertiaryContainer
-            isUploading -> MaterialTheme.colorScheme.secondaryContainer
-            else -> MaterialTheme.colorScheme.primaryContainer
-        },
-        contentColor = when {
-            hasUploadedSuccessfully -> MaterialTheme.colorScheme.onTertiaryContainer
-            isUploading -> MaterialTheme.colorScheme.onSecondaryContainer
-            else -> MaterialTheme.colorScheme.onPrimaryContainer
-        }
-    ) {
-        // AnimatedContent to switch between states smoothly
-        AnimatedContent(
-            targetState = when {
-                hasUploadedSuccessfully -> "SUCCESS"
-                isUploading -> "UPLOADING"
-                else -> "IDLE"
-            },
-            transitionSpec = {
-                fadeIn() togetherWith fadeOut()
-            },
-            label = "fab_content_animation"
-        ) { targetState ->
-            when (targetState) {
-                "SUCCESS" -> {
-                    Icon(
-                        imageVector = Icons.Filled.Done,
-                        contentDescription = "Upload Successful",
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.size(8.dp))
-                    Text(textSuccess)
-                }
-                "UPLOADING" -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        strokeWidth = 2.5.dp,
-                        strokeCap = StrokeCap.Round,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                    Spacer(modifier = Modifier.size(8.dp))
-                    Text(textUploading)
-                }
-                else -> { // IDLE
-                    Icon(
-                        imageVector = Icons.Filled.CloudUpload,
-                        contentDescription = "Start Upload",
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.size(8.dp))
-                    Text(textIdle)
-                }
-            }
+            //PendingUploadItem(upload = upload)
+            val attendanceModel = AttendanceLogModel(
+                employeeName = "N/A",
+                employeeCode = upload.id.toString(),
+                latitude = upload.latitude.toDouble(),
+                longitude = upload.longitude.toDouble(),
+                dateTime = upload.timestamp,
+                message = "Offline Entry",
+                imagePath = "",
+                action = if(upload.isCheckIn) "checkin" else "checkout"
+            )
+            AttendanceLogItem(attendanceModel, upload.imageData, isUploading)
         }
     }
 }
@@ -799,7 +641,9 @@ fun  AttendanceUploadItemPreview() {
             message = "asd",
             imagePath = "asd",
             action = "asd",
-        )
+        ),
+        imageData = null,
+        isUploading = false
     )
 }
 

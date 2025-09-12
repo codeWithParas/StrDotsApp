@@ -8,7 +8,6 @@ import android.location.Geocoder
 import android.location.Location
 import android.os.Build
 import android.util.Log
-import androidx.compose.ui.text.intl.Locale
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -116,8 +115,6 @@ class HomeViewModel @Inject constructor(
                     // Android 13 (API 33) and above has a new way with a listener
                     // For simplicity, this example will focus on the older synchronous method
                     // which is still widely used and works, but you should be aware of the async one.
-                    // geocoder.getFromLocation(location.latitude, location.longitude, 1) { addresses -> ... }
-                    // However, to keep it simple and compatible with older suspend function style:
                     val addresses: List<Address>? = geocoder.getFromLocation(location.latitude, location.longitude, 1)
                     if (!addresses.isNullOrEmpty()) {
                         val address: Address = addresses[0]
@@ -133,7 +130,7 @@ class HomeViewModel @Inject constructor(
                     }
                 } else {
                     // For versions below Android 13 (API 33)
-                    @Suppress("DEPRECATION") // getFromLocation is deprecated but necessary for older versions
+                    //@Suppress("DEPRECATION")
                     val addresses: List<Address>? = geocoder.getFromLocation(location.latitude, location.longitude, 1)
                     if (!addresses.isNullOrEmpty()) {
                         val address: Address = addresses[0]

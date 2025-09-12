@@ -1,8 +1,9 @@
-
 package com.xyz.strapp.presentation.strliveliness
 
 import android.Manifest
 import android.util.Log
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.view.PreviewView
@@ -14,19 +15,19 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column // Added for centering messages
-import androidx.compose.foundation.layout.Spacer // Added
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height // Added
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size // Added for icons
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons // Added
-import androidx.compose.material.icons.filled.CheckCircle // Added
-import androidx.compose.material.icons.filled.Error // Added
-import androidx.compose.material3.CircularProgressIndicator // Added
-import androidx.compose.material3.Icon // Added
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,7 +45,6 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -52,19 +52,18 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.xyz.strapp.presentation.components.GlobalFeedbackViewModel
-import com.xyz.strapp.presentation.components.SuccessMessageDialog
 
 @Composable
 fun LivelinessScreen(
     viewModel: LivenessViewModel = hiltViewModel(),
-    globalFeedbackViewModel: GlobalFeedbackViewModel = hiltViewModel(),
+    globalFeedbackViewModel: GlobalFeedbackViewModel = hiltViewModel(viewModelStoreOwner = LocalActivity.current as ComponentActivity),
     onNavigateBack: (String) -> Unit,
     isCheckInFlow: Boolean,
     latitude: Float,
     longitude: Float
 ) {
     val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     val permissionState = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -72,7 +71,6 @@ fun LivelinessScreen(
             viewModel.onPermissionGranted()
         } else {
             Log.d("StrLivelinessScreen", "Camera permission denied")
-            // Consider updating UI state here via ViewModel to show a persistent message
         }
     }
 
@@ -104,7 +102,7 @@ fun LivelinessScreen(
                 }
             )
             if (uiState is LivenessScreenUiState.Detecting || uiState is LivenessScreenUiState.CountdownRunning) {
-                 AnimatedFaceGuideOverlay(modifier = Modifier.fillMaxSize())
+                AnimatedFaceGuideOverlay(modifier = Modifier.fillMaxSize())
             }
 
         } else {
@@ -141,23 +139,28 @@ fun LivelinessScreen(
                     modifier = Modifier.align(Alignment.BottomCenter)
                 )
             }
+
             is LivenessScreenUiState.CountdownRunning -> {
                 if (isTimerVisible && countdownValue > 0) {
-                    val countMsg = when(countdownValue){
+                    val countMsg = when (countdownValue) {
                         5, 4 -> "Position your face in the guided frame."
                         3, 2 -> "Position your face in the guided frame."
                         else -> "Please try and remain still."
                     }
                     CountdownOverlayTopMsg(
-                        modifier = Modifier.align(Alignment.TopCenter).padding(top = 80.dp),
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 80.dp),
                         /*if(statusText.contains("Spoof")) statusText else*/ countMsg
                     )
                     CountdownOverlay(countdownValue = countdownValue, statusText = statusText)
                 }
             }
+
             is LivenessScreenUiState.ProcessingCapture -> {
                 ProcessingOverlay(message = "Processing capture...")
             }
+
             is LivenessScreenUiState.CaptureSuccess -> {
                 globalFeedbackViewModel.showGlobalSuccess(
                     message = state.message,
@@ -167,6 +170,7 @@ fun LivelinessScreen(
                 //Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
                 onNavigateBack(state.message)
             }
+
             is LivenessScreenUiState.CaptureError -> {
                 globalFeedbackViewModel.showGlobalSuccess(
                     message = state.message,
@@ -175,6 +179,7 @@ fun LivelinessScreen(
                 SuccessErrorOverlay(message = state.message, isError = true)
                 onNavigateBack(state.message)
             }
+
             LivenessScreenUiState.Idle -> {
                 // Nothing specific for idle, or could be initial instructions
             }
@@ -316,7 +321,8 @@ fun AnimatedFaceGuideOverlay(modifier: Modifier = Modifier) {
         val ovalWidth = canvasWidth * 0.90f //0.75f
         val ovalHeight = ovalWidth * 1.3f //1.3f
         val ovalLeft = (canvasWidth - ovalWidth) / 2
-        val ovalTop = (canvasHeight - ovalHeight) * 0.4f // Position slightly higher than true center
+        val ovalTop =
+            (canvasHeight - ovalHeight) * 0.4f // Position slightly higher than true center
 
         val ovalRect = Rect(ovalLeft, ovalTop, ovalLeft + ovalWidth, ovalTop + ovalHeight)
         val ovalPath = Path().apply { addOval(ovalRect) }

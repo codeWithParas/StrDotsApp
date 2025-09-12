@@ -1,6 +1,7 @@
 package com.xyz.strapp.presentation.logs
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.xyz.strapp.domain.model.AttendanceLogModel
@@ -16,22 +17,21 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.coroutines.CoroutineContext
 
 @HiltViewModel
 class LogsViewModel @Inject constructor(
     private val attendanceLogsRepository: AttendanceLogsRepository,
     private val loginRepository: LoginRepository,
     private val faceLivenessRepository: FaceLivenessRepository,
-    private val networkUtils: NetworkUtils
+    private val networkUtils: NetworkUtils,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<LogsUiState>(LogsUiState.Loading)
     val uiState: StateFlow<LogsUiState> = _uiState.asStateFlow()
-    
+
     private val _selectedTab = MutableStateFlow(0)
     val selectedTab: StateFlow<Int> = _selectedTab.asStateFlow()
-    
+
     private val _isOnline = MutableStateFlow(false)
     val isOnline: StateFlow<Boolean> = _isOnline.asStateFlow()
 
@@ -39,20 +39,25 @@ class LogsViewModel @Inject constructor(
         loadLogs()
         observeNetworkConnectivity()
     }
-    
-    private fun observeNetworkConnectivity() {
+
+
+    fun observeNetworkConnectivity() {
         viewModelScope.launch {
             networkUtils.observeNetworkConnectivity().collect { isConnected ->
+                Log.e("Network State", "Network State ---- $isConnected")
                 _isOnline.value = isConnected
-                
+
                 // If we just came back online and we're on the logs tab, refresh data
                 if (isConnected && _selectedTab.value == 0) {
                     loadLogs()
                 }
+                if (!isConnected && _selectedTab.value == 1) {
+                    loadPendingUploads()
+                }
             }
         }
     }
-    
+
     fun setSelectedTab(index: Int) {
         _selectedTab.value = index
         if (index == 0) {
@@ -65,14 +70,14 @@ class LogsViewModel @Inject constructor(
     fun loadLogs() {
         viewModelScope.launch {
             _uiState.value = LogsUiState.Loading
-            
+
             // Get the auth token
             val authToken = loginRepository.getToken()
             if (authToken.isNullOrEmpty()) {
                 _uiState.value = LogsUiState.Error("Not logged in")
                 return@launch
             }
-            
+
             attendanceLogsRepository.getAttendanceLogs(authToken).collectLatest { result ->
                 _uiState.value = result.fold(
                     onSuccess = { logs ->
@@ -89,7 +94,7 @@ class LogsViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun loadPendingUploads() {
         viewModelScope.launch {
             _uiState.value = LogsUiState.Loading
@@ -101,14 +106,16 @@ class LogsViewModel @Inject constructor(
                     _uiState.value = LogsUiState.PendingUploads(false, pendingUploads)
                 }
             } catch (e: Exception) {
-                _uiState.value = LogsUiState.Error(e.message ?: "Unknown error loading pending uploads")
+                _uiState.value =
+                    LogsUiState.Error(e.message ?: "Unknown error loading pending uploads")
             }
         }
     }
 
     fun uploadPendingLogs(context: Context) {
         viewModelScope.launch {
-            _uiState.value = LogsUiState.PendingUploads(true, faceLivenessRepository.getPendingUploads())
+            _uiState.value =
+                LogsUiState.PendingUploads(true, faceLivenessRepository.getPendingUploads())
             //_uiState.value = LogsUiState.PendingLogsLoader
             // Get the auth token
             val authToken = loginRepository.getToken()
@@ -117,8 +124,9 @@ class LogsViewModel @Inject constructor(
                 return@launch
             }
 
-            faceLivenessRepository.uploadPendingLogsToServer(context = context).collectLatest { result ->
-                /*_uiState.value = r*/result.fold(
+            faceLivenessRepository.uploadPendingLogsToServer(context = context)
+                .collectLatest { result ->
+                    /*_uiState.value = r*/result.fold(
                     onSuccess = { pendingUploads ->
                         if (pendingUploads.isEmpty()) {
                             _uiState.value = LogsUiState.EmptyPendingUploads
@@ -131,7 +139,7 @@ class LogsViewModel @Inject constructor(
                         _uiState.value = LogsUiState.Error(error.message ?: "Unknown error")
                     }
                 )
-            }
+                }
         }
     }
 }
@@ -141,6 +149,8 @@ sealed class LogsUiState {
     object Empty : LogsUiState()
     object EmptyPendingUploads : LogsUiState()
     data class Success(val logs: List<AttendanceLogModel>) : LogsUiState()
-    data class PendingUploads(val isUploading: Boolean, val pendingUploads: List<FaceImageEntity>) : LogsUiState()
+    data class PendingUploads(val isUploading: Boolean, val pendingUploads: List<FaceImageEntity>) :
+        LogsUiState()
+
     data class Error(val message: String) : LogsUiState()
 }

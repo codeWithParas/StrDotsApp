@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle // Default success icon
+import androidx.compose.material.icons.filled.SignalWifiOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -115,6 +116,30 @@ private fun SuccessMessageDialogPreviewNoTitle() {
             onDismissRequest = {},
             title = null,
             message = "Image uploaded successfully."
+        )
+    }
+}
+
+@Composable
+fun NoInternetDialog(
+    showDialog: Boolean,
+    onDismiss: () -> Unit, // Renamed for clarity, handles both dismiss and confirm for this simple dialog
+    title: String = "No Internet",
+    message: String = "Please check your internet connection and try again.",
+    confirmButtonText: String = "Ok",
+    icon: ImageVector = Icons.Default.SignalWifiOff
+) {
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = onDismiss, // Called when user clicks outside or presses back
+            icon = { Icon(icon, contentDescription = "No Internet Icon", tint = MaterialTheme.colorScheme.error) },
+            title = { Text(text = title) },
+            text = { Text(text = message) },
+            confirmButton = {
+                TextButton(onClick = onDismiss) { // Simple "OK" button
+                    Text(confirmButtonText)
+                }
+            }
         )
     }
 }

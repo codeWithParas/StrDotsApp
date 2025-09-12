@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
+import javax.inject.Singleton
 
 data class GlobalSuccessDialogContent(
     val title: String? = "Success!",
@@ -19,9 +20,14 @@ data class GlobalSuccessDialogContent(
 
 @HiltViewModel
 class GlobalFeedbackViewModel @Inject constructor() : ViewModel() {
-
+    init {
+        //println("GlobalFeedbackViewModel instance created: ${this.hashCode()}")
+    }
     private val _showGlobalSuccessDialog = MutableStateFlow(false)
     val showGlobalSuccessDialog: StateFlow<Boolean> = _showGlobalSuccessDialog.asStateFlow()
+
+    private val _showNoInternetDialog = MutableStateFlow(false)
+    val showNoInternetDialog: StateFlow<Boolean> = _showNoInternetDialog.asStateFlow()
 
     private val _globalSuccessDialogContent = MutableStateFlow(GlobalSuccessDialogContent())
     val globalSuccessDialogContent: StateFlow<GlobalSuccessDialogContent> = _globalSuccessDialogContent.asStateFlow()
@@ -33,7 +39,14 @@ class GlobalFeedbackViewModel @Inject constructor() : ViewModel() {
 
     fun dismissGlobalSuccessDialog() {
         _showGlobalSuccessDialog.value = false
-        // Optionally reset content to defaults if desired after dismissal
-        // _globalSuccessDialogContent.value = GlobalSuccessDialogContent()
+    }
+
+    fun showNoInternetMsgDialog(feedback: GlobalSuccessDialogContent) {
+        _globalSuccessDialogContent.value = feedback
+        _showNoInternetDialog.value = true
+    }
+
+    fun dismissNoInternetDialog() {
+        _showNoInternetDialog.value = false
     }
 }

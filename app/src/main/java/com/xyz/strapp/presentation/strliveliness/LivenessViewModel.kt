@@ -12,16 +12,9 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.work.Constraints
-import androidx.work.ExistingWorkPolicy
-import androidx.work.NetworkType
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.mlkit.vision.face.Face
 import com.xyz.strapp.domain.repository.FaceLivenessRepository
-import com.xyz.strapp.presentation.logs.LogsUiState
-import com.xyz.strapp.worker.ImageUploadWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -46,9 +39,8 @@ sealed interface LivenessScreenUiState {
 
 @HiltViewModel
 class LivenessViewModel @Inject constructor(
-    private val application: Application, // Application context
+    private val application: Application,
     private val faceLivenessRepository: FaceLivenessRepository,
-    //private val workManager: CheckInWorkManager
 ) : ViewModel() {
 
     private lateinit var cameraProviderFuture: ListenableFuture<ProcessCameraProvider>
@@ -80,7 +72,6 @@ class LivenessViewModel @Inject constructor(
     companion object {
         private const val TAG = "LivenessViewModel"
         private const val COUNTDOWN_SECONDS = 3
-        private const val UPLOAD_WORK_TAG = "ImageUploadWork"
     }
 
     init {
@@ -252,30 +243,6 @@ class LivenessViewModel @Inject constructor(
         }
     }
 
-    private fun enqueueImageUploadWorker() {
-        // Initialize WorkManager
-        val workManager = WorkManager.getInstance(application)
-
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.CONNECTED)
-            .build()
-
-        val uploadWorkRequest = OneTimeWorkRequestBuilder<ImageUploadWorker>()
-            .setConstraints(constraints)
-            // You can add a tag to observe or cancel the work by this tag if needed
-            .addTag(UPLOAD_WORK_TAG)
-            .build()
-
-        //workManager.enqueue(uploadWorkRequest)
-        // For unique work, if you only want one instance of this worker running:
-        workManager.enqueueUniqueWork(
-            UPLOAD_WORK_TAG,
-            ExistingWorkPolicy.REPLACE, // or KEEP, or APPEND
-            uploadWorkRequest
-        )
-        Log.d(TAG, "###@@@ ImageUploadWorker enqueued.")
-    }
-
     private fun resetCaptureState() {
         capturedImageForProcessing = null
         lastTrackedFaceIdForCountdown = null
@@ -332,5 +299,29 @@ class LivenessViewModel @Inject constructor(
         }
         countdownJob?.cancel()
     }
+
+    /*private fun enqueueImageUploadWorker() {
+        // Initialize WorkManager
+        val workManager = WorkManager.getInstance(application)
+
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        val uploadWorkRequest = OneTimeWorkRequestBuilder<ImageUploadWorker>()
+            .setConstraints(constraints)
+            // You can add a tag to observe or cancel the work by this tag if needed
+            .addTag(UPLOAD_WORK_TAG)
+            .build()
+
+        //workManager.enqueue(uploadWorkRequest)
+        // For unique work, if you only want one instance of this worker running:
+        workManager.enqueueUniqueWork(
+            UPLOAD_WORK_TAG,
+            ExistingWorkPolicy.REPLACE, // or KEEP, or APPEND
+            uploadWorkRequest
+        )
+        Log.d(TAG, "###@@@ ImageUploadWorker enqueued.")
+    }*/
 }
 

@@ -8,13 +8,9 @@ import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
-import com.xyz.strapp.R
 import com.xyz.strapp.data.dao.FaceImageDao
-import com.xyz.strapp.domain.model.AttendanceLogModel
-import com.xyz.strapp.domain.model.CheckInResponse
 import com.xyz.strapp.domain.model.entity.FaceImageEntity
 import com.xyz.strapp.endpoints.ApiService
-import com.xyz.strapp.presentation.strliveliness.LivenessScreenUiState
 import com.xyz.strapp.utils.Constants
 import com.xyz.strapp.utils.NetworkUtils
 import com.xyz.strapp.utils.Utils.getCurrentDateTimeInIsoFormatTruncatedToSecond
@@ -36,7 +32,6 @@ import javax.inject.Singleton
 class FaceLivenessRepository @Inject constructor(
     private val faceImageDao: FaceImageDao,
     private val apiService: ApiService,
-    private val token: String?,
     private val networkUtils: NetworkUtils,
 ) {
 

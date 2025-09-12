@@ -1,15 +1,11 @@
 package com.xyz.strapp.presentation.navigation
 
 import android.util.Log
-import androidx.appcompat.app.AppCompatDelegate
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.graphics.Color
-import androidx.core.os.LocaleListCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -19,24 +15,21 @@ import androidx.navigation.navArgument
 import com.xyz.strapp.presentation.LanguageScreen.LanguageScreen
 import com.xyz.strapp.presentation.StartScreen
 import com.xyz.strapp.presentation.components.GlobalFeedbackViewModel
-import com.xyz.strapp.presentation.components.SuccessMessageDialog
 import com.xyz.strapp.presentation.faceupload.FaceImageUploadScreen
 import com.xyz.strapp.presentation.homescreen.HomeScreen
 import com.xyz.strapp.presentation.strliveliness.LivelinessScreen
 import com.xyz.strapp.presentation.userlogin.LoginScreen
-import com.xyz.strapp.utils.restartApp
-import kotlinx.coroutines.delay
 
 @Composable
 fun Navigation(
     navController: NavHostController,
     authStatusViewModel: AuthStatusViewModel = hiltViewModel(),
-    globalFeedbackViewModel: GlobalFeedbackViewModel = hiltViewModel(),
+    globalFeedbackViewModel: GlobalFeedbackViewModel = hiltViewModel(viewModelStoreOwner = LocalActivity.current as ComponentActivity),
 ) {
 
     val isUserLoggedIn by authStatusViewModel.isUserLoggedIn.collectAsState()
     val isLanguageSelected by authStatusViewModel.isLanguageSelected.collectAsState()
-    val isLoading by authStatusViewModel.isLoading.collectAsState()
+    //val isLoading by authStatusViewModel.isLoading.collectAsState()
 
     NavHost(navController = navController, startDestination = Screen.StartScreen.route) {
         composable(Screen.StartScreen.route) {
@@ -49,6 +42,7 @@ fun Navigation(
                             }
                         }
                     }
+
                     isUserLoggedIn == true -> {
                         navController.navigate(Screen.HomeScreen.route) {
                             popUpTo(Screen.LoginScreen.route) {
@@ -98,7 +92,13 @@ fun Navigation(
         composable(Screen.HomeScreen.route) {
             HomeScreen(
                 onNavigateToFaceLiveness = { isCheckInFlow, latitude, longitude ->
-                    navController.navigate(Screen.LivelinessScreen.createRoute(isCheckInFlow, latitude.toFloat(), longitude.toFloat()))
+                    navController.navigate(
+                        Screen.LivelinessScreen.createRoute(
+                            isCheckInFlow,
+                            latitude.toFloat(),
+                            longitude.toFloat()
+                        )
+                    )
                 },
                 onLogout = {
                     navController.navigate(Screen.LoginScreen.route) {
@@ -130,7 +130,7 @@ fun Navigation(
             Log.d("Navigation", "###@@@ isCheckInFlow: $isCheckInFlow")
             LivelinessScreen(
                 onNavigateBack = { strMessage ->
-                    if(strMessage.isNotBlank()) {
+                    if (strMessage.isNotBlank()) {
                         globalFeedbackViewModel.showGlobalSuccess(strMessage)
                     }
                     navController.popBackStack(Screen.HomeScreen.route, false)
@@ -166,13 +166,13 @@ fun Navigation(
 sealed class Screen(val route: String) {
     object StartScreen : Screen("splash_screen")
     object LoginScreen : Screen("login_screen")
-    object  LanguageScreen : Screen(route = "language_screen")
-    object RegisterScreen : Screen("register_screen")
+    object LanguageScreen : Screen(route = "language_screen")
+
+    //object RegisterScreen : Screen("register_screen")
     object HomeScreen : Screen("home_screen")
-    object ProfileScreen : Screen("profile_screen")
-    object LogsScreen:Screen("logs_screen")
     object FaceImageUploadScreen : Screen("face_image_upload_screen")
-    object LivelinessScreen : Screen("str_liveliness_screen/{isCheckInFlow}/{latitude}/{longitude}") {
+    object LivelinessScreen :
+        Screen("str_liveliness_screen/{isCheckInFlow}/{latitude}/{longitude}") {
         fun createRoute(isCheckInFlow: Boolean, latitude: Float, longitude: Float): String {
             return "str_liveliness_screen/$isCheckInFlow/$latitude/$longitude"
         }
