@@ -20,6 +20,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.BusinessCenter
@@ -79,6 +80,7 @@ data class InfoItem(
 fun ProfileScreen(
     profileViewModel: ProfileViewModel = hiltViewModel(),
     onLogout: () -> Unit,
+    onNavigateToFaceUpload: () -> Unit,
 ){
     val onLanguageSelected = { lang : String ->
 
@@ -99,12 +101,18 @@ fun ProfileScreen(
         when (val state = profileUIState) {
             is ProfileUiState.Success -> {
                 // When data is successfully loaded, show the profile content.
-                ProfileContent(profile = state.profileResponse, {
-                    scope.launch {
-                        profileViewModel.Logout()
-                        onLogout()
+                ProfileContent(
+                    profile = state.profileResponse,
+                    onLogout = {
+                        scope.launch {
+                            profileViewModel.Logout()
+                            onLogout()
+                        }
+                    },
+                    onNavigateToFaceUpload = {
+                        onNavigateToFaceUpload()
                     }
-                })
+                )
             }
 
             is ProfileUiState.Error -> {
@@ -156,7 +164,9 @@ fun ProfileScreen(
 
 @Composable
 fun ProfileContent(
-    profile: ProfileResponse,onLogout: () -> Unit,
+    profile: ProfileResponse,
+    onLogout: () -> Unit,
+    onNavigateToFaceUpload: () -> Unit,
     modifier: Modifier = Modifier,
     profileViewModel: ProfileViewModel = hiltViewModel()) {
     val scope = rememberCoroutineScope()
@@ -170,7 +180,32 @@ fun ProfileContent(
     ) {
         // Pass the dynamic image data
         ImageCard(profile = profile, modifier = Modifier)
-        
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp)
+                .height(56.dp),
+            onClick = {
+                onNavigateToFaceUpload()
+            },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.tertiary,
+                contentColor = MaterialTheme.colorScheme.onError
+            ),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.AddAPhoto,
+                contentDescription = null,
+                modifier = Modifier.padding(end = 8.dp)
+            )
+            Text(
+                text = "Register Face",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium
+            )
+        }
         Column(
             modifier = Modifier
                 .fillMaxWidth()

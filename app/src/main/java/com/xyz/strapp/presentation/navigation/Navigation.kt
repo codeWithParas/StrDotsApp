@@ -106,6 +106,13 @@ fun Navigation(
                             inclusive = true
                         }
                     }
+                },
+                onNavigateToFaceUpload = {
+                    navController.navigate(Screen.FaceImageUploadScreen.route) {
+                        popUpTo(Screen.LoginScreen.route) {
+                            inclusive = false // Keep login screen in back stack
+                        }
+                    }
                 })
         }
         composable(
