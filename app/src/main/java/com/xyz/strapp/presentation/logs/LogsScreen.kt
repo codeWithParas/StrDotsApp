@@ -1,5 +1,6 @@
 package com.xyz.strapp.presentation.logs
 
+import android.text.Layout
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedContent
@@ -496,28 +497,20 @@ fun PendingUploadsState(
     pendingUploads: List<FaceImageEntity>,
     startOfflineSync: () -> Unit
 ) {
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(bottom = 6.dp, start = 16.dp, end = 16.dp, top = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.padding(bottom = 16.dp)) {
-                    Text(
-                        text = stringResource(R.string.logs_pending_uploads),
-                        style = MaterialTheme.typography.headlineMedium,
-                        modifier = Modifier.padding(bottom = 5.dp)
-                    )
-                    Text(
-                        text = "Count : ${pendingUploads.size}",
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(bottom = 5.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.weight(1f))
-
+    Column {
+        Column (modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 5.dp)) {
+            Text(
+                text = stringResource(R.string.logs_pending_uploads),
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.padding(bottom = 5.dp)
+            )
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "Count : ${pendingUploads.size}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(bottom = 5.dp)
+                )
+                Spacer(Modifier.weight(1f))
                 // Upload status indicator
                 Box(
                     modifier = Modifier
@@ -532,6 +525,7 @@ fun PendingUploadsState(
                         })
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
+
                         if(isUploading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(20.dp),
@@ -554,20 +548,79 @@ fun PendingUploadsState(
                 }
             }
         }
-        
-        items(pendingUploads) { upload ->
-            //PendingUploadItem(upload = upload)
-            val attendanceModel = AttendanceLogModel(
-                employeeName = "N/A",
-                employeeCode = upload.id.toString(),
-                latitude = upload.latitude.toDouble(),
-                longitude = upload.longitude.toDouble(),
-                dateTime = upload.timestamp,
-                message = "Offline Entry",
-                imagePath = "",
-                action = if(upload.isCheckIn) "checkin" else "checkout"
-            )
-            AttendanceLogItem(attendanceModel, upload.imageData, isUploading)
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 6.dp, start = 16.dp, end = 16.dp, top = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            /*item {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(modifier = Modifier.padding(bottom = 16.dp)) {
+                        Text(
+                            text = stringResource(R.string.logs_pending_uploads),
+                            style = MaterialTheme.typography.headlineMedium,
+                            modifier = Modifier.padding(bottom = 5.dp)
+                        )
+                        Text(
+                            text = "Count : ${pendingUploads.size}",
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(bottom = 5.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    // Upload status indicator
+                    Box(
+                        modifier = Modifier
+                            .shadow(elevation = 1.dp)
+                            .background(
+                                color = Color(0xFFFF9800).copy(alpha = 0.1f),
+                                shape = RoundedCornerShape(4.dp),
+                            )
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                            .clickable(onClick = {
+                                startOfflineSync()
+                            })
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if(isUploading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = Color(0xFFFF9800)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                            }
+                            Icon(
+                                imageVector = Icons.Default.Upload,
+                                contentDescription = null,
+                                tint = Color(0xFFFF9800),
+                                modifier = Modifier.padding(end = 4.dp)
+                            )
+                            Text(
+                                text = "Sync Entries",
+                                color = Color(0xFFFF9800),
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                        }
+                    }
+                }
+            }*/
+
+            items(pendingUploads) { upload ->
+                //PendingUploadItem(upload = upload)
+                val attendanceModel = AttendanceLogModel(
+                    employeeName = "N/A",
+                    employeeCode = upload.id.toString(),
+                    latitude = upload.latitude.toDouble(),
+                    longitude = upload.longitude.toDouble(),
+                    dateTime = upload.timestamp,
+                    message = "Offline Entry",
+                    imagePath = "",
+                    action = if(upload.isCheckIn) "checkin" else "checkout"
+                )
+                AttendanceLogItem(attendanceModel, upload.imageData, isUploading)
+            }
         }
     }
 }

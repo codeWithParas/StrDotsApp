@@ -129,12 +129,13 @@ class FaceLivenessRepository @Inject constructor(
      *    c. Handle errors, retries, etc.
      * This should ideally be managed by WorkManager for robust background execution.
      */
-    fun uploadPendingLogsToServer(context: Context): Flow<Result<List<FaceImageEntity>>> =
+    fun uploadPendingLogsToServer(context: Context): Flow<Result<Pair<Boolean, List<FaceImageEntity>>>> =
         channelFlow {
             if (networkUtils.isNetworkAvailable()) {
                 try {
                     val pendingImages = getPendingUploads()
-                    delay(200)
+                    Log.e("ImageUploader", "Image Uploaded Size: ${pendingImages.size}")
+                    delay(100)
                     for (imageEntity in pendingImages) {
                         try {
                             if(imageEntity.isCheckIn) {
@@ -157,36 +158,39 @@ class FaceLivenessRepository @Inject constructor(
                                 result.fold(
                                     onSuccess = {
                                         Log.e("ImageUploader", "Image Uploaded: ${imageEntity.id}")
-                                        //emit(Result.success(message))
                                         // Fetch remaining uploads
                                         val updatedPendingLogs = getPendingUploads()
-                                        send(Result.success(updatedPendingLogs))
+                                        if(pendingImages.last() == imageEntity) {
+                                            Log.e("ImageUploader", "Image Uploaded Failed LAST ENTITY: ${imageEntity.id}")
+                                            send(Result.success(Pair(false, updatedPendingLogs)))
+                                        } else {
+                                            send(Result.success(Pair(true, updatedPendingLogs)))
+                                        }
                                     },
                                     onFailure = { error ->
                                         // Show error dialog
                                         Log.e("ImageUploader", "Image Uploaded Failed: ${imageEntity.id}")
                                         if(pendingImages.last() == imageEntity) {
-                                            //emit(Result.success(pendingImages))
-                                            send(Result.success(pendingImages))
+                                            val updatedPendingLogs = getPendingUploads()
+                                            Log.e("ImageUploader", "Image Uploaded Failed LAST ENTITY: ${imageEntity.id}")
+                                            send(Result.success(Pair(false, updatedPendingLogs)))
                                         }
                                     }
                                 )
                             }
                         } catch (e: Exception) {
                             Log.e("ImageUploader", "Image Uploaded Failed: ${imageEntity.id} - ${e.message}")
-                            if(pendingImages.last() == imageEntity) {
-                                //emit(Result.success(pendingImages))
-                                send(Result.success(pendingImages))
-                            }
+                            send(Result.success(Pair(false, pendingImages)))
                         }
                         delay(200)
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "Exception during log upload API call: ${e.message}", e)
+                    Log.e("ImageUploader", "Exception during log upload API call: ${e.message}", e)
                     // Use cached data if available
                     send(Result.failure(Exception("Network error: ${e.message} and no cached data available")))
                 }
             } else {
+                Log.e("ImageUploader", "No internet connection and no cached data available")
                 // No internet - use cached data immediately
                 send(Result.failure(Exception("No internet connection and no cached data available")))
             }

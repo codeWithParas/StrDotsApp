@@ -116,7 +116,6 @@ class LogsViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value =
                 LogsUiState.PendingUploads(true, faceLivenessRepository.getPendingUploads())
-            //_uiState.value = LogsUiState.PendingLogsLoader
             // Get the auth token
             val authToken = loginRepository.getToken()
             if (authToken.isNullOrEmpty()) {
@@ -126,19 +125,23 @@ class LogsViewModel @Inject constructor(
 
             faceLivenessRepository.uploadPendingLogsToServer(context = context)
                 .collectLatest { result ->
-                    /*_uiState.value = r*/result.fold(
-                    onSuccess = { pendingUploads ->
-                        if (pendingUploads.isEmpty()) {
-                            _uiState.value = LogsUiState.EmptyPendingUploads
-                        } else {
-                            //LogsUiState.PendingUploads(pendingUploads)
-                            _uiState.value = LogsUiState.PendingUploads(true, pendingUploads)
+                    result.fold(
+                        onSuccess = { (isUploading, pendingUploads) ->
+                            if (pendingUploads.isEmpty()) {
+                                _uiState.value = LogsUiState.EmptyPendingUploads
+                            } else {
+                                _uiState.value = LogsUiState.PendingUploads(isUploading, pendingUploads)
+                            }
+                        },
+                        onFailure = { error ->
+                            if(error.message == "Issue with uploading images") {
+                                val pendingUploads = faceLivenessRepository.getPendingUploads()
+                                _uiState.value = LogsUiState.PendingUploads(false, pendingUploads)
+                            } else {
+                                //_uiState.value = LogsUiState.Error(error.message ?: "Unknown error")
+                            }
                         }
-                    },
-                    onFailure = { error ->
-                        _uiState.value = LogsUiState.Error(error.message ?: "Unknown error")
-                    }
-                )
+                    )
                 }
         }
     }
