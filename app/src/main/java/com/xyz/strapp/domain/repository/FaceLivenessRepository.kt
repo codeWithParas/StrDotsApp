@@ -13,7 +13,7 @@ import com.xyz.strapp.domain.model.entity.FaceImageEntity
 import com.xyz.strapp.endpoints.ApiService
 import com.xyz.strapp.utils.Constants
 import com.xyz.strapp.utils.NetworkUtils
-import com.xyz.strapp.utils.Utils.getCurrentDateTimeInIsoFormatTruncatedToSecond
+import com.xyz.strapp.utils.Utils.formatLocalDateTimeToUtcString
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -25,6 +25,7 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.ByteArrayOutputStream
+import java.time.LocalDateTime
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -64,7 +65,7 @@ class FaceLivenessRepository @Inject constructor(
                     return@withContext null
                 }
 
-                val formattedDateTimeTruncated = getCurrentDateTimeInIsoFormatTruncatedToSecond()
+                val formattedDateTimeTruncated = formatLocalDateTimeToUtcString(LocalDateTime.now())
                 val faceImageEntity = FaceImageEntity(
                     id = 0,
                     imageData = imageByteArray,
@@ -129,12 +130,13 @@ class FaceLivenessRepository @Inject constructor(
      *    c. Handle errors, retries, etc.
      * This should ideally be managed by WorkManager for robust background execution.
      */
-    fun uploadPendingLogsToServer(context: Context): Flow<Result<List<FaceImageEntity>>> =
+    fun uploadPendingLogsToServer(context: Context): Flow<Result<Pair<Boolean, List<FaceImageEntity>>>> =
         channelFlow {
             if (networkUtils.isNetworkAvailable()) {
                 try {
                     val pendingImages = getPendingUploads()
-                    delay(200)
+                    Log.e("ImageUploader", "Image Uploaded Size: ${pendingImages.size}")
+                    delay(100)
                     for (imageEntity in pendingImages) {
                         try {
                             if(imageEntity.isCheckIn) {
@@ -143,7 +145,9 @@ class FaceLivenessRepository @Inject constructor(
                                     imageEntity.id,
                                     imageEntity.imageData,
                                     imageEntity.latitude,
-                                    imageEntity.longitude
+                                    imageEntity.longitude,
+                                    imageEntity.timestamp,
+                                    true
                                 )
                             } else {
                                 startCheckOut(
@@ -151,42 +155,47 @@ class FaceLivenessRepository @Inject constructor(
                                     imageEntity.id,
                                     imageEntity.imageData,
                                     imageEntity.latitude,
-                                    imageEntity.longitude
+                                    imageEntity.longitude,
+                                    imageEntity.timestamp,
+                                    true
                                 )
                             }.collectLatest { result ->
                                 result.fold(
                                     onSuccess = {
                                         Log.e("ImageUploader", "Image Uploaded: ${imageEntity.id}")
-                                        //emit(Result.success(message))
                                         // Fetch remaining uploads
                                         val updatedPendingLogs = getPendingUploads()
-                                        send(Result.success(updatedPendingLogs))
+                                        if(pendingImages.last() == imageEntity) {
+                                            Log.e("ImageUploader", "Image Uploaded Failed LAST ENTITY: ${imageEntity.id}")
+                                            send(Result.success(Pair(false, updatedPendingLogs)))
+                                        } else {
+                                            send(Result.success(Pair(true, updatedPendingLogs)))
+                                        }
                                     },
                                     onFailure = { error ->
                                         // Show error dialog
                                         Log.e("ImageUploader", "Image Uploaded Failed: ${imageEntity.id}")
                                         if(pendingImages.last() == imageEntity) {
-                                            //emit(Result.success(pendingImages))
-                                            send(Result.success(pendingImages))
+                                            val updatedPendingLogs = getPendingUploads()
+                                            Log.e("ImageUploader", "Image Uploaded Failed LAST ENTITY: ${imageEntity.id}")
+                                            send(Result.success(Pair(false, updatedPendingLogs)))
                                         }
                                     }
                                 )
                             }
                         } catch (e: Exception) {
                             Log.e("ImageUploader", "Image Uploaded Failed: ${imageEntity.id} - ${e.message}")
-                            if(pendingImages.last() == imageEntity) {
-                                //emit(Result.success(pendingImages))
-                                send(Result.success(pendingImages))
-                            }
+                            send(Result.success(Pair(false, pendingImages)))
                         }
                         delay(200)
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "Exception during log upload API call: ${e.message}", e)
+                    Log.e("ImageUploader", "Exception during log upload API call: ${e.message}", e)
                     // Use cached data if available
                     send(Result.failure(Exception("Network error: ${e.message} and no cached data available")))
                 }
             } else {
+                Log.e("ImageUploader", "No internet connection and no cached data available")
                 // No internet - use cached data immediately
                 send(Result.failure(Exception("No internet connection and no cached data available")))
             }
@@ -236,7 +245,9 @@ class FaceLivenessRepository @Inject constructor(
         imageId: Long,
         imageByteArray: ByteArray,
         latitude: Float,
-        longitude: Float
+        longitude: Float,
+        timestamp: String,
+        isUploadingOfflineLogs: Boolean
     ): Flow<Result<String>> = flow {
         if (networkUtils.isNetworkAvailable()) {
             try {
@@ -253,12 +264,12 @@ class FaceLivenessRepository @Inject constructor(
                     "image_${imageId}.jpg", // This is the filename sent to the server
                     imageRequestBody
                 )
-                val formattedDateTimeTruncated = getCurrentDateTimeInIsoFormatTruncatedToSecond()
+                val dateTime = if(isUploadingOfflineLogs) timestamp else formatLocalDateTimeToUtcString(LocalDateTime.now())
                 val response = apiService.startCheckIn(
                     imagePart = imagePart,
                     latitude = latitude,
                     longitude = longitude,
-                    dateTime = formattedDateTimeTruncated
+                    dateTime = dateTime
                 )
                 if (response.isSuccessful) {
                     val data = response.body()
@@ -290,7 +301,9 @@ class FaceLivenessRepository @Inject constructor(
         imageId: Long,
         imageByteArray: ByteArray,
         latitude: Float,
-        longitude: Float
+        longitude: Float,
+        timestamp: String,
+        isUploadingOfflineLogs: Boolean
     ): Flow<Result<String?>> = flow {
         if (networkUtils.isNetworkAvailable()) {
             try {
@@ -315,12 +328,12 @@ class FaceLivenessRepository @Inject constructor(
                         "checkIn_image_${imageId}.jpg"
                     )
                 }
-                val formattedDateTimeTruncated = getCurrentDateTimeInIsoFormatTruncatedToSecond()
+                val dateTime = if(isUploadingOfflineLogs) timestamp else formatLocalDateTimeToUtcString(LocalDateTime.now())
                 val response = apiService.startCheckOut(
                     imagePart = imagePart,
                     latitude = latitude,
                     longitude = longitude,
-                    dateTime = formattedDateTimeTruncated
+                    dateTime = dateTime
                 )
                 if (response.isSuccessful) {
                     val data = response.body()

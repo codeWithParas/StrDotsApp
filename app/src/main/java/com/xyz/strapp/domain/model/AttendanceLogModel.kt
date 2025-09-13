@@ -4,6 +4,7 @@ import com.google.gson.annotations.SerializedName
 import com.xyz.strapp.domain.model.entity.AttendanceLogEntity
 import com.xyz.strapp.utils.Utils
 import java.text.SimpleDateFormat
+import java.time.LocalDateTime
 import java.util.Locale
 
 data class AttendanceLogModel(
@@ -49,7 +50,7 @@ data class AttendanceLogModel(
             val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
             val date = inputFormat.parse(dateTime)
             date?.let {
-                SimpleDateFormat("HH:mm", Locale.getDefault()).format(it)
+                SimpleDateFormat("HH:mm a", Locale.getDefault()).format(it)
             } ?: dateTime
         } catch (e: Exception) {
             dateTime

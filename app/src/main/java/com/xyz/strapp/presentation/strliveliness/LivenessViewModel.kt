@@ -15,6 +15,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.mlkit.vision.face.Face
 import com.xyz.strapp.domain.repository.FaceLivenessRepository
+import com.xyz.strapp.utils.Utils.formatLocalDateTimeToUtcString
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.time.LocalDateTime
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import javax.inject.Inject
@@ -205,9 +207,25 @@ class LivenessViewModel @Inject constructor(
                 val imageId = faceLivenessRepository.saveFaceImageToRoomDatabase(bitmapToSave, latitude, longitude, isCheckInFlow)
                 if (imageId?.first != null) {
                     if(isCheckInFlow) {
-                        faceLivenessRepository.startCheckIn(context, imageId.first, imageId.second, latitude, longitude)
+                        faceLivenessRepository.startCheckIn(
+                            context,
+                            imageId.first,
+                            imageId.second,
+                            latitude,
+                            longitude,
+                            formatLocalDateTimeToUtcString(LocalDateTime.now()),
+                            false
+                        )
                     } else {
-                        faceLivenessRepository.startCheckOut(context, imageId.first, imageId.second, latitude, longitude)
+                        faceLivenessRepository.startCheckOut(
+                            context,
+                            imageId.first,
+                            imageId.second,
+                            latitude,
+                            longitude,
+                            formatLocalDateTimeToUtcString(LocalDateTime.now()),
+                            false
+                        )
                     }.collectLatest { result ->
                         _uiState.value = result.fold(
                             onSuccess = { responseMsg ->
