@@ -27,40 +27,29 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.CloudUpload
-import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.SignalWifiOff
 import androidx.compose.material.icons.filled.Upload
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.layout.ContentScale
@@ -76,7 +65,11 @@ import com.xyz.strapp.domain.model.AttendanceLogModel
 import com.xyz.strapp.domain.model.entity.FaceImageEntity
 import com.xyz.strapp.presentation.components.GlobalFeedbackViewModel
 import com.xyz.strapp.presentation.components.GlobalSuccessDialogContent
+import com.xyz.strapp.utils.Utils.convertUtcToAddOffsetAndDisplayAsIst
+import com.xyz.strapp.utils.Utils.formatLocalDateTimeToUtcString
+import com.xyz.strapp.utils.Utils.getFormattedTimeZ
 import java.text.SimpleDateFormat
+import java.time.LocalDateTime
 import java.util.Date
 import java.util.Locale
 
@@ -248,13 +241,13 @@ fun SuccessState(logs: List<AttendanceLogModel>, isOffline: Boolean = false) {
         }
         
         items(logs) { log ->
-            AttendanceLogItem(log = log, imageData = null, isUploading = false)
+            AttendanceLogItem(log = log, imageData = null, isUploading = false, isOfflineRecords = false)
         }
     }
 }
 
 @Composable
-fun AttendanceLogItem(log: AttendanceLogModel, imageData: ByteArray?, isUploading: Boolean) {
+fun AttendanceLogItem(log: AttendanceLogModel, imageData: ByteArray?, isUploading: Boolean, isOfflineRecords: Boolean) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -356,14 +349,19 @@ fun AttendanceLogItem(log: AttendanceLogModel, imageData: ByteArray?, isUploadin
                         else
                             "N/A"
                     )
-
+                    val time = if(isOfflineRecords) {
+                        log.getFormattedTime()
+                    } else {
+                        convertUtcToAddOffsetAndDisplayAsIst(log.dateTime)
+                        //getFormattedTimeZ(formatLocalDateTimeToUtcString(LocalDateTime.parse(log.dateTime)))
+                    }
                     // Time
                     Spacer(modifier = Modifier.height(8.dp))
                     LogInfoRow(
                         //icon = Icons.Default.Schedule,
                         icon = null,
                         label = "Time",
-                        value = log.getFormattedTime()
+                        value = time //log.getFormattedTime()
                     )
                 }
             }
@@ -554,61 +552,7 @@ fun PendingUploadsState(
                 .padding(bottom = 6.dp, start = 16.dp, end = 16.dp, top = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            /*item {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(modifier = Modifier.padding(bottom = 16.dp)) {
-                        Text(
-                            text = stringResource(R.string.logs_pending_uploads),
-                            style = MaterialTheme.typography.headlineMedium,
-                            modifier = Modifier.padding(bottom = 5.dp)
-                        )
-                        Text(
-                            text = "Count : ${pendingUploads.size}",
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(bottom = 5.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    // Upload status indicator
-                    Box(
-                        modifier = Modifier
-                            .shadow(elevation = 1.dp)
-                            .background(
-                                color = Color(0xFFFF9800).copy(alpha = 0.1f),
-                                shape = RoundedCornerShape(4.dp),
-                            )
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                            .clickable(onClick = {
-                                startOfflineSync()
-                            })
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            if(isUploading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    color = Color(0xFFFF9800)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                            }
-                            Icon(
-                                imageVector = Icons.Default.Upload,
-                                contentDescription = null,
-                                tint = Color(0xFFFF9800),
-                                modifier = Modifier.padding(end = 4.dp)
-                            )
-                            Text(
-                                text = "Sync Entries",
-                                color = Color(0xFFFF9800),
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                        }
-                    }
-                }
-            }*/
-
             items(pendingUploads) { upload ->
-                //PendingUploadItem(upload = upload)
                 val attendanceModel = AttendanceLogModel(
                     employeeName = "N/A",
                     employeeCode = upload.id.toString(),
@@ -619,7 +563,7 @@ fun PendingUploadsState(
                     imagePath = "",
                     action = if(upload.isCheckIn) "checkin" else "checkout"
                 )
-                AttendanceLogItem(attendanceModel, upload.imageData, isUploading)
+                AttendanceLogItem(attendanceModel, upload.imageData, isUploading, true)
             }
         }
     }
@@ -696,7 +640,8 @@ fun  AttendanceUploadItemPreview() {
             action = "asd",
         ),
         imageData = null,
-        isUploading = false
+        isUploading = false,
+        false
     )
 }
 

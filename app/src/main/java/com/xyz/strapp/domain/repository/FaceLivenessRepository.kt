@@ -13,7 +13,7 @@ import com.xyz.strapp.domain.model.entity.FaceImageEntity
 import com.xyz.strapp.endpoints.ApiService
 import com.xyz.strapp.utils.Constants
 import com.xyz.strapp.utils.NetworkUtils
-import com.xyz.strapp.utils.Utils.getCurrentDateTimeInIsoFormatTruncatedToSecond
+import com.xyz.strapp.utils.Utils.formatLocalDateTimeToUtcString
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -25,6 +25,7 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.ByteArrayOutputStream
+import java.time.LocalDateTime
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -64,7 +65,7 @@ class FaceLivenessRepository @Inject constructor(
                     return@withContext null
                 }
 
-                val formattedDateTimeTruncated = getCurrentDateTimeInIsoFormatTruncatedToSecond()
+                val formattedDateTimeTruncated = formatLocalDateTimeToUtcString(LocalDateTime.now())
                 val faceImageEntity = FaceImageEntity(
                     id = 0,
                     imageData = imageByteArray,
@@ -144,7 +145,9 @@ class FaceLivenessRepository @Inject constructor(
                                     imageEntity.id,
                                     imageEntity.imageData,
                                     imageEntity.latitude,
-                                    imageEntity.longitude
+                                    imageEntity.longitude,
+                                    imageEntity.timestamp,
+                                    true
                                 )
                             } else {
                                 startCheckOut(
@@ -152,7 +155,9 @@ class FaceLivenessRepository @Inject constructor(
                                     imageEntity.id,
                                     imageEntity.imageData,
                                     imageEntity.latitude,
-                                    imageEntity.longitude
+                                    imageEntity.longitude,
+                                    imageEntity.timestamp,
+                                    true
                                 )
                             }.collectLatest { result ->
                                 result.fold(
@@ -240,7 +245,9 @@ class FaceLivenessRepository @Inject constructor(
         imageId: Long,
         imageByteArray: ByteArray,
         latitude: Float,
-        longitude: Float
+        longitude: Float,
+        timestamp: String,
+        isUploadingOfflineLogs: Boolean
     ): Flow<Result<String>> = flow {
         if (networkUtils.isNetworkAvailable()) {
             try {
@@ -257,12 +264,12 @@ class FaceLivenessRepository @Inject constructor(
                     "image_${imageId}.jpg", // This is the filename sent to the server
                     imageRequestBody
                 )
-                val formattedDateTimeTruncated = getCurrentDateTimeInIsoFormatTruncatedToSecond()
+                val dateTime = if(isUploadingOfflineLogs) timestamp else formatLocalDateTimeToUtcString(LocalDateTime.now())
                 val response = apiService.startCheckIn(
                     imagePart = imagePart,
                     latitude = latitude,
                     longitude = longitude,
-                    dateTime = formattedDateTimeTruncated
+                    dateTime = dateTime
                 )
                 if (response.isSuccessful) {
                     val data = response.body()
@@ -294,7 +301,9 @@ class FaceLivenessRepository @Inject constructor(
         imageId: Long,
         imageByteArray: ByteArray,
         latitude: Float,
-        longitude: Float
+        longitude: Float,
+        timestamp: String,
+        isUploadingOfflineLogs: Boolean
     ): Flow<Result<String?>> = flow {
         if (networkUtils.isNetworkAvailable()) {
             try {
@@ -319,12 +328,12 @@ class FaceLivenessRepository @Inject constructor(
                         "checkIn_image_${imageId}.jpg"
                     )
                 }
-                val formattedDateTimeTruncated = getCurrentDateTimeInIsoFormatTruncatedToSecond()
+                val dateTime = if(isUploadingOfflineLogs) timestamp else formatLocalDateTimeToUtcString(LocalDateTime.now())
                 val response = apiService.startCheckOut(
                     imagePart = imagePart,
                     latitude = latitude,
                     longitude = longitude,
-                    dateTime = formattedDateTimeTruncated
+                    dateTime = dateTime
                 )
                 if (response.isSuccessful) {
                     val data = response.body()
